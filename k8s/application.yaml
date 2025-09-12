@@ -1,15 +1,12 @@
-apiVersion: argoproj.io/v1alpha1
-kind: Application
-metadata:
-  name: fh-swifty-chatbot
-  namespace: argocd
-
-spec:
-  destination:
-    namespace: openai-proxy
-    server: https://kubernetes.default.svc
-  project: default
-  source:
-    path: k8s
-    repoURL: https://github.com/fhswf/FH-SWiFty-Chatbot.git
-    targetRevision: HEAD
+project: webapps
+source:
+  repoURL: git@github.com:fhswf/fh-swifty-chatbot.git
+  path: k8s
+  targetRevision: HEAD
+destination:
+  server: https://kubernetes.default.svc
+  namespace: fh-swifty-chatbot
+syncPolicy:
+  automated: {}
+  syncOptions:
+    - CreateNamespace=true
