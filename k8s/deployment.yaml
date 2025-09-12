@@ -26,11 +26,27 @@ spec:
           env:
             - name: PYTHONVERSION
               value: "3.13"
+            - name: LANGSMITH_TRACING
+              value: "true"
+            - name: LANGSMITH_ENDPOINT
+              value: "https://api.smith.langchain.com"
+            - name: LANGSMITH_PROJECT
+              value: "fh-swifty-chatbot"
+            - name: LANGSMITH_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: fh-swifty-chatbot-secrets
+                  key: LANGSMITH_API_KEY
             - name: OPENAI_API_KEY
               valueFrom:
                 secretKeyRef:
                   name: openai-secret
                   key: openai-api-key
+            - name: TAVILY_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: fh-swifty-chatbot-secrets
+                  key: TAVILY_API_KEY
           resources:
             limits:
               memory: 512Mi

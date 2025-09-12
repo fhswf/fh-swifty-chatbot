@@ -5,6 +5,7 @@ resources:
 - deployment.yaml
 - service.yaml
 - ingress.yaml
+- secrets.yaml
 
 images:
 - name: fh-swifty-chatbot
