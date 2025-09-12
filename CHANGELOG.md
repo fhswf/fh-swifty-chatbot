@@ -1,6 +1,35 @@
 # CHANGELOG
 
 
+## v0.1.3 (2025-09-12)
+
+### Bug Fixes
+
+- Update pyproject.toml to add selenium and unstructured as development dependencies
+  ([`1bd3007`](https://github.com/fhswf/fh-swifty-chatbot/commit/1bd3007f4e0ace4f9f45a2869f25797987693526))
+
+### Chores
+
+- Add Playwright and unstructured as dependencies in pyproject.toml and update urlLoader notebook to
+  utilize PlaywrightURLLoader
+  ([`19d7be8`](https://github.com/fhswf/fh-swifty-chatbot/commit/19d7be858b715f8259dff7f19cb6e9d9f4333319))
+
+- Refactor web crawling implementation to use SeleniumURLLoader and update dependencies in
+  pyproject.toml
+  ([`9b5e1ef`](https://github.com/fhswf/fh-swifty-chatbot/commit/9b5e1ef1b843ce0f57c65d9d21ed0ee0051693d9))
+
+- Remove BrowserConfig instantiation from AsyncWebCrawler usage in find_info_on_fhswf_website
+  function
+  ([`7fd7a8e`](https://github.com/fhswf/fh-swifty-chatbot/commit/7fd7a8e3cd0552d665ffb8a4f19cd7608d912038))
+
+- Remove unnecessary browser_mode parameter from BrowserConfig in AsyncWebCrawler
+  ([`d14629f`](https://github.com/fhswf/fh-swifty-chatbot/commit/d14629f8225b0de7045a4cebd3afcf1b5b6938b7))
+
+- Update Dockerfile to use python:3.13-slim, add beautifulsoup4 as a runtime dependency, and replace
+  SeleniumURLLoader with WebBaseLoader in tools.py
+  ([`5e86957`](https://github.com/fhswf/fh-swifty-chatbot/commit/5e869572fea56d43818d567d05624ecef6add979))
+
+
 ## v0.1.2 (2025-09-12)
 
 ### Bug Fixes
