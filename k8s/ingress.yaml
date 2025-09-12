@@ -6,11 +6,11 @@ metadata:
     traefik.ingress.kubernetes.io/router.priority: "10"
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
     traefik.ingress.kubernetes.io/router.tls.certresolver: letsencrypt
-  name: fh-swifty-chatbot.ki.fh-swf.de-frontend
+  name: fh-swifty-chatbot.fh-swf.de-frontend
   namespace: openai-proxy
 spec:
   rules:
-  - host: fh-swifty-chatbot.ki.fh-swf.de
+  - host: fh-swifty-chatbot.fh-swf.cloud
     http:
       paths:
       - backend:
@@ -20,70 +20,3 @@ spec:
               number: 80
         path: /
         pathType: Prefix 
-
-# ---
-# apiVersion: traefik.io/v1alpha1
-# kind: IngressRoute
-# metadata:
-#   name: login.ki.fh-swf.de
-#   namespace: openai-proxy
-# spec:
-#   entryPoints:
-#     - web-secure
-#   routes:
-#     - kind: Rule
-#       match: Host(`login.ki.fh-swf.de`) && PathPrefix(`/openai/ui`)
-#       priority: 10
-#       services:
-#         - kind: Service
-#           name: openai-ui
-#           namespace: openai-proxy
-#           port: 80
-#       middlewares:
-#         - name: openai-ui-stripprefix
-#   tls:
-#     certResolver: default
-# ---
-# apiVersion: traefik.io/v1alpha1
-# kind: Middleware
-# metadata:
-#   name: redirectscheme
-# spec:
-#   redirectScheme:
-#     scheme: https
-#     permanent: true
-# ---
-# apiVersion: networking.k8s.io/v1
-# kind: Ingress
-# metadata:
-#   annotations:
-#     traefik.frontend.passHostHeader: "true"
-#     traefik.ingress.kubernetes.io/router.priority: "10"
-#     traefik.ingress.kubernetes.io/router.entrypoints: websecure
-#     traefik.ingress.kubernetes.io/router.tls.certresolver: letsencrypt
-#   name: openai.fh-swf.cloud-frontend
-#   namespace: openai-proxy
-# spec:
-#   rules:
-#   - host: openai.fh-swf.cloud
-#     http:
-#       paths:
-#       - backend:
-#           service:
-#             name: openai-ui
-#             port:
-#               number: 80
-#         path: /
-#         pathType: Prefix   
-# ---
-# ---
-# apiVersion: traefik.io/v1alpha1
-# kind: Middleware
-# metadata:
-#   namespace: openai-proxy
-#   name: fh-swifty-chatbot-stripprefix
-# spec:
-#   stripPrefix:
-#     prefixes:
-#       - /fh-swifty-chatbot
-# ---
