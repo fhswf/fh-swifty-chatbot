@@ -26,6 +26,11 @@ spec:
           env:
             - name: PYTHONVERSION
               value: "3.13"
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: openai-secret
+                  key: openai-api-key
           resources:
             limits:
               memory: 512Mi
