@@ -1,0 +1,12 @@
+services:
+  fh-swifty-chatbot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: fh-swifty-chatbot
+    container_name: fh-swifty-chatbot
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONUNBUFFERED=1
+    restart: always
