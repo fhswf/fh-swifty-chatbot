@@ -1,6 +1,68 @@
 # CHANGELOG
 
 
+## v0.1.2 (2025-09-12)
+
+### Bug Fixes
+
+- Update AsyncWebCrawler configuration to use BrowserConfig for headless browsing
+  ([`ee9191e`](https://github.com/fhswf/fh-swifty-chatbot/commit/ee9191e82c70ba6751b794894b449ebbbdcfc6e7))
+
+### Chores
+
+- Add installation of system dependencies for Playwright Chromium in Dockerfile
+  ([`a2c52b0`](https://github.com/fhswf/fh-swifty-chatbot/commit/a2c52b0cb5d10b720a7d4fbf35f28ad3bdac1bc5))
+
+- Add system dependencies for Playwright Chromium in Dockerfile
+  ([`6e0ce81`](https://github.com/fhswf/fh-swifty-chatbot/commit/6e0ce81607b5ed0d270bbdb7605aeb50d697745c))
+
+- Refine Dockerfile by removing redundant cleanup step after installing system dependencies
+  ([`7bd81b9`](https://github.com/fhswf/fh-swifty-chatbot/commit/7bd81b988b5132ba38b836c251b2ec08a7f7471c))
+
+- Remove Playwright Chromium installation command from Dockerfile
+  ([`4488060`](https://github.com/fhswf/fh-swifty-chatbot/commit/4488060948cc5321a047689ab189925070a0898a))
+
+- Remove system dependencies installation for Playwright Chromium from Dockerfile
+  ([`22a7cd0`](https://github.com/fhswf/fh-swifty-chatbot/commit/22a7cd050aae47eac704ed51b43881f794596773))
+
+- Remove unnecessary dependencies from playwright installation command
+  ([`da0d3c2`](https://github.com/fhswf/fh-swifty-chatbot/commit/da0d3c2ca8b62dcd7ddbb6c86bb22c846339eb1e))
+
+- Restore Playwright Chromium installation command in Dockerfile
+  ([`93e8414`](https://github.com/fhswf/fh-swifty-chatbot/commit/93e841485670ef62fef7a0c51063b877b102a7c6))
+
+- Streamline system dependencies installation for Playwright Chromium in Dockerfile
+  ([`7086737`](https://github.com/fhswf/fh-swifty-chatbot/commit/7086737df75f2fcd8b08fcbd7c76a50388ebb207))
+
+- Switch to Alpine Python base image in Dockerfile
+  ([`7526cdc`](https://github.com/fhswf/fh-swifty-chatbot/commit/7526cdc82056bebba262c0723eec43f17ddc33b3))
+
+- Switch to slim Python base image in Dockerfile
+  ([`3c99d82`](https://github.com/fhswf/fh-swifty-chatbot/commit/3c99d8210f6ae1f712eee5cfa3e01e5ea54892a6))
+
+- Switch to standard Python base image in Dockerfile
+  ([`4d0e2b7`](https://github.com/fhswf/fh-swifty-chatbot/commit/4d0e2b7a4fd7eb493f37eddde103efdb10d01a4e))
+
+- Update Dockerfile to install additional system dependencies for Playwright Chromium
+  ([`6a69ce4`](https://github.com/fhswf/fh-swifty-chatbot/commit/6a69ce426d11ea920f86fb69f9bbdb5accf82055))
+
+- Update Dockerfile to streamline Playwright Chromium installation with dependencies
+  ([`1ac3b9b`](https://github.com/fhswf/fh-swifty-chatbot/commit/1ac3b9bedd350df1f7596ef440e9bbfde3e24c25))
+
+- Update playwright install command
+  ([`162107d`](https://github.com/fhswf/fh-swifty-chatbot/commit/162107ddc538842ec09276e21d4c78face54f728))
+
+- Update playwright installation command to include dependencies
+  ([`ef317a1`](https://github.com/fhswf/fh-swifty-chatbot/commit/ef317a12c5d0d2a9fe01e93163a745dd28068441))
+
+- Update playwright installation to use chromium and bump package version to 0.1.1
+  ([`ee5297f`](https://github.com/fhswf/fh-swifty-chatbot/commit/ee5297f8bc185bbf03abe07c7b1a029d996ecf21))
+
+- Update pyproject.toml and uv.lock to add development dependencies including ipykernel and related
+  packages
+  ([`f8a3a9c`](https://github.com/fhswf/fh-swifty-chatbot/commit/f8a3a9c2bc45f7ef457e839da9d308ce75e9bce3))
+
+
 ## v0.1.1 (2025-09-12)
 
 ### Bug Fixes
