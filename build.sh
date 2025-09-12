@@ -1,1 +1,1 @@
-docker build --platform linux/amd64 -t fh-swifty-chatbot .
+docker build --platform linux/amd64 -t ghcr.io/fhswf/fh-swifty-chatbot:latest .

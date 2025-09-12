@@ -5,6 +5,6 @@ COPY pyproject.toml /app
 RUN uv sync
 RUN uv run playwright install
 COPY . /app
-#RUN uv pip install -e .
+RUN uv pip install -e .
 EXPOSE 8000
 CMD ["uv", "run", "chainlit", "run", "fh-swifty-chatbot/agent_langgraph_app.py", "--host", "0.0.0.0"]
