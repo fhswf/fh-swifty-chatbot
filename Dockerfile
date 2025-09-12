@@ -14,8 +14,7 @@ RUN apt-get update && apt-get install -y \
     libx11-6 libxcomposite1 libxdamage1 \
     libxext6 libxfixes3 libxrandr2 \
     libgbm1 libcairo2 libpango-1.0-0 \
-    libasound2 \
-    && rm -rf /var/lib/apt/lists/*
+    libasound2
 
 RUN uv run playwright install chromium
 COPY . /app
