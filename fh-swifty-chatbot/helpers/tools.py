@@ -1,5 +1,5 @@
 from langchain_tavily import TavilySearch
-from crawl4ai import AsyncWebCrawler, BrowserConfig, CrawlerRunConfig, CacheMode
+from crawl4ai import AsyncWebCrawler, CrawlerRunConfig, CacheMode
 from langchain_core.tools import tool
 import json
 import chainlit as cl
@@ -16,11 +16,9 @@ async def find_info_on_fhswf_website(query: str) -> str:
         include_domains=["fh-swf.de"],
     )
     results = tool.invoke({"query": "FH swf " + query})
-
-    browser_conf = BrowserConfig(headless=True)
     
     # Crawl the FH Südwestfalen website and get the content
-    async with AsyncWebCrawler(config=browser_conf) as crawler:
+    async with AsyncWebCrawler() as crawler:
         js_code = [
                 "const loadMoreButton = Array.from(document.querySelectorAll('button')).find(button => button.textContent.toLowerCase().includes('mehr')); loadMoreButton && loadMoreButton.click();"
         ]
