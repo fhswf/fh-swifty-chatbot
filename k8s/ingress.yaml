@@ -20,3 +20,26 @@ spec:
               number: 80
         path: /
         pathType: Prefix 
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    traefik.frontend.passHostHeader: "true"
+    traefik.ingress.kubernetes.io/router.priority: "10"
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls.certresolver: letsencrypt
+  name: chatbot.fh-swf.de-frontend
+  namespace: fh-swifty-chatbot
+spec:
+  rules:
+  - host: chatbot.fh-swf.cloud
+    http:
+      paths:
+      - backend:
+          service:
+            name: fh-swifty-chatbot
+            port:
+              number: 80
+        path: /
+        pathType: Prefix 
