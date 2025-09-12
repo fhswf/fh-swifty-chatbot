@@ -3,6 +3,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      platforms:
+        - linux/amd64
     image: fh-swifty-chatbot
     container_name: fh-swifty-chatbot
     ports:
