@@ -1,5 +1,5 @@
 from langchain_tavily import TavilySearch
-from crawl4ai import AsyncWebCrawler, CrawlerRunConfig, CacheMode
+from langchain_community.document_loaders import SeleniumURLLoader
 from langchain_core.tools import tool
 import json
 import chainlit as cl
@@ -16,33 +16,14 @@ async def find_info_on_fhswf_website(query: str) -> str:
         include_domains=["fh-swf.de"],
     )
     results = tool.invoke({"query": "FH swf " + query})
-    
-    # Crawl the FH Südwestfalen website and get the content
-    async with AsyncWebCrawler() as crawler:
-        js_code = [
-                "const loadMoreButton = Array.from(document.querySelectorAll('button')).find(button => button.textContent.toLowerCase().includes('mehr')); loadMoreButton && loadMoreButton.click();"
-        ]
-        config = CrawlerRunConfig(
-                cache_mode=CacheMode.ENABLED,
-                js_code=js_code,
-                excluded_tags=["header", "footer"],
-            )
-        contents = await crawler.arun_many(
-            urls=[result['url'] for result in results['results']],
-            config=config,
-        )
+    urls=[result['url'] for result in results['results']]
+    loader = SeleniumURLLoader(urls)
+    contents = loader.load()
 
     # Return the content of the FH Südwestfalen website
-    final_results = [
-        {
-            'url': result['url'],
-            #'content': result['content'],
-            'raw_content': [content for content in contents if content.url == result['url']][0].markdown,
-        }
-        for result in results['results']
-    ]
+    final_results = [content.model_dump() for content in contents]
 
     print(f"Found {len(final_results[0])} results")
-    print(final_results[0]['url'])
+    print(final_results[0]['metadata']['source'])
 
     return json.dumps(final_results, indent=2)

@@ -2,8 +2,7 @@ FROM python:3.13
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 WORKDIR /app
 COPY pyproject.toml /app
-RUN uv sync
-RUN uv run playwright install chromium --with-deps
+RUN uv sync --no-dev
 COPY . /app
 RUN uv pip install -e .
 EXPOSE 8000
