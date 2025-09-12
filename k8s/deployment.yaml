@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    io.kompose.service: fh-swifty-chatbot
+  name: fh-swifty-chatbot
+  namespace: openai-proxy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: fh-swifty-chatbot
+  strategy:
+    type: RollingUpdate
+  revisionHistoryLimit: 5
+  template:
+    metadata:
+      labels:
+        io.kompose.service: fh-swifty-chatbot
+    spec:
+      containers:
+        - image: ghcr.io/fhswf/fh-swifty-chatbot:latest
+          name: fh-swifty-chatbot
+          ports:
+            - containerPort: 8000
+          env:
+            - name: PYTHONVERSION
+              value: 3.13
+          resources:
+            limits:
+              memory: 512Mi
+              cpu: 2000m
+            requests:
+              memory: 128Mi
+              cpu: 500m
+      restartPolicy: Always
+      autoMountServiceAccountToken: false
+status: {}
