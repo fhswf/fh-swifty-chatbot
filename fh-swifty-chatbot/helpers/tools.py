@@ -17,7 +17,7 @@ async def find_info_on_fhswf_website(query: str) -> str:
     )
     results = tool.invoke({"query": "FH swf " + query})
 
-    browser_conf = BrowserConfig(headless=True, browser_mode="builtin")
+    browser_conf = BrowserConfig(headless=True)
     
     # Crawl the FH Südwestfalen website and get the content
     async with AsyncWebCrawler(config=browser_conf) as crawler:
