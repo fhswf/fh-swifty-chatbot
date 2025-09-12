@@ -14,3 +14,8 @@ dependencies = [
 
 [tool.setuptools.packages.find]
 include = ["fh-swifty-chatbot*"]
+
+[dependency-groups]
+dev = [
+    "ipykernel>=6.30.1",
+]
