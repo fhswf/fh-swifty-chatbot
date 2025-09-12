@@ -1,5 +1,5 @@
 from langchain_tavily import TavilySearch
-from langchain_community.document_loaders import SeleniumURLLoader
+from langchain_community.document_loaders import WebBaseLoader
 from langchain_core.tools import tool
 import json
 import chainlit as cl
@@ -17,7 +17,7 @@ async def find_info_on_fhswf_website(query: str) -> str:
     )
     results = tool.invoke({"query": "FH swf " + query})
     urls=[result['url'] for result in results['results']]
-    loader = SeleniumURLLoader(urls)
+    loader = WebBaseLoader(urls)
     contents = loader.load()
 
     # Return the content of the FH Südwestfalen website
