@@ -19,7 +19,7 @@ spec:
         io.kompose.service: fh-swifty-chatbot
     spec:
       containers:
-        - image: ghcr.io/fhswf/fh-swifty-chatbot:latest
+        - image: fh-swifty-chatbot
           name: fh-swifty-chatbot
           ports:
             - containerPort: 8000

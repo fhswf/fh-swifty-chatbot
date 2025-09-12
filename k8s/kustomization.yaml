@@ -6,6 +6,6 @@ resources:
 - ingress.yaml
 
 images:
-- name: mcp
+- name: fh-swifty-chatbot
   newName: ghcr.io/fhswf/fh-swifty-chatbot
-  newTag: "latest"
+  newTag: "0.1.0"
