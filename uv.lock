@@ -683,6 +683,7 @@ dev = [
     { name = "crawl4ai" },
     { name = "ipykernel" },
     { name = "langchain-community" },
+    { name = "playwright" },
     { name = "selenium" },
     { name = "unstructured" },
 ]
@@ -703,6 +704,7 @@ dev = [
     { name = "crawl4ai", specifier = ">=0.7.4" },
     { name = "ipykernel", specifier = ">=6.30.1" },
     { name = "langchain-community", specifier = ">=0.3.29" },
+    { name = "playwright", specifier = ">=1.55.0" },
     { name = "selenium", specifier = ">=4.35.0" },
     { name = "unstructured", specifier = ">=0.18.14" },
 ]
