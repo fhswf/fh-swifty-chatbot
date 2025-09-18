@@ -1,5 +1,7 @@
 # FH-SWiFty-Chatbot
 
+Wichtiges Update - erst mal nur für mich
+
 ## Beschreibung
 Ein intelligenter KI-Chatbot für die FH Südwestfalen (SWF), entwickelt mit LangGraph und Chainlit. Der Chatbot kann Fragen über die Hochschule und ihre Studiengänge beantworten und greift dabei auf die offizielle Website der FH SWF zu.
 
