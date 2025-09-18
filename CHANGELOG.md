@@ -1,6 +1,33 @@
 # CHANGELOG
 
 
+## v0.1.4 (2025-09-18)
+
+### Bug Fixes
+
+- Set replicas to 4
+  ([`d3489dc`](https://github.com/fhswf/fh-swifty-chatbot/commit/d3489dcd2e3bd9145af477fc33a795e225095639))
+
+### Chores
+
+- Add notebook dependency group in pyproject.toml for enhanced development environment
+  ([`2670fb5`](https://github.com/fhswf/fh-swifty-chatbot/commit/2670fb58771711e6096d23f53f0369cc3cc42738))
+
+- Update chainlit.md to reflect new welcome message and versioning
+  ([`13c1345`](https://github.com/fhswf/fh-swifty-chatbot/commit/13c134582d8c7864531895617ac772e4fc603e47))
+
+- Update Dockerfile to remove --no-dev flag from uv sync and clean up pyproject.toml by removing
+  development dependencies
+  ([`6089520`](https://github.com/fhswf/fh-swifty-chatbot/commit/60895204169a98c60ba316f59cad596a644c59bf))
+
+- Update Dockerfile to use python:3.13 and bump fh-swifty-chatbot version to 0.1.3, adding
+  beautifulsoup4 as a runtime dependency
+  ([`cc07e88`](https://github.com/fhswf/fh-swifty-chatbot/commit/cc07e8834ff7675345144012fe8c8c1c405e2d17))
+
+- Update Dockerfile to use python:3.13-slim
+  ([`9a0f3c5`](https://github.com/fhswf/fh-swifty-chatbot/commit/9a0f3c5cde1c02471548a6cfd420e6bea7cdb576))
+
+
 ## v0.1.3 (2025-09-12)
 
 ### Bug Fixes
