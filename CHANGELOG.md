@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.1.5 (2025-09-18)
+
+### Bug Fixes
+
+- Increase resource limits
+  ([`04f963b`](https://github.com/fhswf/fh-swifty-chatbot/commit/04f963b85ded7d2ff686a476b8528486af25c175))
+
+
 ## v0.1.4 (2025-09-18)
 
 ### Bug Fixes
