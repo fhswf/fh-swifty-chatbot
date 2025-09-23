@@ -1,12 +1,12 @@
 services:
-  fh-swifty-chatbot:
+  fh-swifty-ui:
     build:
       context: .
       dockerfile: Dockerfile
       platforms:
         - linux/amd64
-    image: fh-swifty-chatbot
-    container_name: fh-swifty-chatbot
+    image: fh-swifty-ui
+    container_name: fh-swifty-ui
     ports:
       - "8000:8000"
     environment:
