@@ -1,0 +1,242 @@
+/* FH SWF Custom Theme for Chainlit */
+/* Implementiert das Corporate Design der Fachhochschule Südwestfalen */
+
+:root {
+  /* FH SWF Farbschema */
+  --fh-primary-color: #003366;        /* FH SWF Dunkelblau */
+  --fh-secondary-color: #0066CC;      /* FH SWF Hellblau */
+  --fh-accent-color: #FF6600;         /* FH SWF Orange */
+  --fh-success-color: #00AA44;        /* FH Grün */
+  --fh-warning-color: #FFAA00;        /* FH Orange-Gelb */
+  --fh-error-color: #CC0000;          /* FH Rot */
+  --fh-light-gray: #F8F9FA;          /* Heller Hintergrund */
+  --fh-dark-gray: #2C3E50;           /* Dunkler Text */
+  --fh-border-color: #E0E0E0;        /* Rahmenfarbe */
+  
+  /* Typographie */
+  --fh-font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --fh-heading-font: "Segoe UI Semibold", sans-serif;
+}
+
+/* Hauptcontainer anpassen */
+.chainlit-app {
+  font-family: var(--fh-font-family);
+}
+
+/* Header/Navigation Styling */
+.cl-header {
+  background: linear-gradient(135deg, var(--fh-primary-color), var(--fh-secondary-color));
+  border-bottom: 3px solid var(--fh-accent-color);
+  box-shadow: 0 2px 10px rgba(0, 51, 102, 0.1);
+}
+
+.cl-header .cl-logo {
+  max-height: 40px;
+  margin-right: 15px;
+}
+
+.cl-header h1 {
+  color: white;
+  font-family: var(--fh-heading-font);
+  font-size: 1.4rem;
+  margin: 0;
+}
+
+/* Chat Interface Styling */
+.cl-chat-container {
+  background-color: var(--fh-light-gray);
+}
+
+.cl-message-wrapper {
+  margin: 1rem 0;
+}
+
+/* Benutzer-Messages */
+.cl-user-message {
+  background: linear-gradient(135deg, var(--fh-secondary-color), var(--fh-primary-color));
+  border-radius: 18px 18px 4px 18px;
+  color: white;
+  box-shadow: 0 2px 8px rgba(0, 102, 204, 0.2);
+}
+
+/* Assistant-Messages */
+.cl-assistant-message {
+  background: white;
+  border: 1px solid var(--fh-border-color);
+  border-radius: 18px 18px 18px 4px;
+  color: var(--fh-dark-gray);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+/* Eingabebereich */
+.cl-input-wrapper {
+  background: white;
+  border: 2px solid var(--fh-border-color);
+  border-radius: 25px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.cl-input-wrapper:focus-within {
+  border-color: var(--fh-secondary-color);
+  box-shadow: 0 4px 12px rgba(0, 102, 204, 0.2);
+}
+
+.cl-input {
+  border: none;
+  font-family: var(--fh-font-family);
+  color: var(--fh-dark-gray);
+}
+
+/* Send Button */
+.cl-send-button {
+  background: linear-gradient(135deg, var(--fh-secondary-color), var(--fh-primary-color));
+  border-radius: 50%;
+  transition: all 0.3s ease;
+}
+
+.cl-send-button:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(0, 102, 204, 0.3);
+}
+
+/* Loading States mit FH Branding */
+.cl-loading-indicator {
+  color: var(--fh-secondary-color);
+}
+
+.cl-typing-indicator {
+  background: linear-gradient(90deg, 
+    var(--fh-secondary-color) 0%, 
+    var(--fh-accent-color) 50%, 
+    var(--fh-secondary-color) 100%);
+  background-size: 200% 100%;
+  animation: fh-loading 2s linear infinite;
+}
+
+@keyframes fh-loading {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Error States */
+.cl-error-message {
+  background-color: #FFF5F5;
+  border: 1px solid var(--fh-error-color);
+  border-left: 4px solid var(--fh-error-color);
+  color: var(--fh-error-color);
+  border-radius: 8px;
+  padding: 1rem;
+  margin: 1rem 0;
+}
+
+/* Success States */
+.cl-success-message {
+  background-color: #F0FFF4;
+  border: 1px solid var(--fh-success-color);
+  border-left: 4px solid var(--fh-success-color);
+  color: var(--fh-success-color);
+  border-radius: 8px;
+  padding: 1rem;
+  margin: 1rem 0;
+}
+
+/* Sidebar Styling */
+.cl-sidebar {
+  background: var(--fh-light-gray);
+  border-right: 1px solid var(--fh-border-color);
+}
+
+.cl-thread-item:hover {
+  background-color: rgba(0, 102, 204, 0.1);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .cl-header h1 {
+    font-size: 1.2rem;
+  }
+  
+  .cl-header .cl-logo {
+    max-height: 35px;
+  }
+  
+  .cl-message-wrapper {
+    margin: 0.5rem 0;
+  }
+  
+  .cl-input-wrapper {
+    border-radius: 20px;
+  }
+}
+
+/* File Upload Styling */
+.cl-file-upload-area {
+  border: 2px dashed var(--fh-secondary-color);
+  border-radius: 12px;
+  background-color: rgba(0, 102, 204, 0.05);
+  transition: all 0.3s ease;
+}
+
+.cl-file-upload-area:hover,
+.cl-file-upload-area.cl-drag-active {
+  border-color: var(--fh-accent-color);
+  background-color: rgba(255, 102, 0, 0.1);
+}
+
+/* Buttons */
+.cl-button-primary {
+  background: linear-gradient(135deg, var(--fh-secondary-color), var(--fh-primary-color));
+  border: none;
+  border-radius: 6px;
+  color: white;
+  font-family: var(--fh-font-family);
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.cl-button-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 102, 204, 0.3);
+}
+
+.cl-button-secondary {
+  background: white;
+  border: 2px solid var(--fh-secondary-color);
+  color: var(--fh-secondary-color);
+  border-radius: 6px;
+  font-family: var(--fh-font-family);
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.cl-button-secondary:hover {
+  background: var(--fh-secondary-color);
+  color: white;
+}
+
+/* Scrollbar Styling */
+.cl-chat-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.cl-chat-container::-webkit-scrollbar-track {
+  background: var(--fh-light-gray);
+}
+
+.cl-chat-container::-webkit-scrollbar-thumb {
+  background: var(--fh-secondary-color);
+  border-radius: 4px;
+}
+
+.cl-chat-container::-webkit-scrollbar-thumb:hover {
+  background: var(--fh-primary-color);
+}
+
+/* Footer/Watermark */
+.cl-watermark {
+  color: var(--fh-primary-color);
+  font-size: 0.85rem;
+  border-top: 1px solid var(--fh-border-color);
+  background: var(--fh-light-gray);
+}
