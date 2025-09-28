@@ -60,11 +60,15 @@ FH-SWiFty-Chatbot/
 git clone <repository-url>
 cd FH-SWiFty-Chatbot
 
-# Abhängigkeiten installieren
-pip install -e .
+# Virtuelles Environment erstellen und Abhängigkeiten installieren
+uv venv
+uv sync
+
+# Environment aktivieren (Windows)
+.venv\Scripts\activate
 
 # Chainlit-Anwendung starten
-chainlit run fh-swifty-chatbot/agent_langgraph_app.py
+uv run chainlit run fh-swifty-chatbot/agent_langgraph_app.py
 ```
 
 ### Docker Installation
@@ -78,6 +82,23 @@ docker run -p 8000:8000 fh-swifty-chatbot
 ```
 
 ## Verwendung
+
+### Mit UV (Empfohlen)
+```bash
+# Environment aktivieren
+.venv\Scripts\activate  # Windows
+# oder
+source .venv/bin/activate  # Linux/Mac
+
+# Anwendung starten
+uv run chainlit run fh-swifty-chatbot/agent_langgraph_app.py
+```
+
+### Mit Python direkt
+```bash
+python -m chainlit run fh-swifty-chatbot/agent_langgraph_app.py
+```
+
 Nach dem Start ist der Chatbot über den Browser unter `http://localhost:8000` erreichbar.
 
 ## Konfiguration
@@ -98,3 +119,31 @@ Der Chatbot benötigt folgende Umgebungsvariablen:
 
 ## Entwicklung
 Das Projekt verwendet die Python-Packaging-Struktur mit `pyproject.toml` und moderne LLM-Frameworks für eine skalierbare Chatbot-Architektur.
+
+### Entwicklungsumgebung einrichten
+```bash
+# Environment erstellen
+uv venv
+
+# Alle Abhängigkeiten installieren 
+uv sync
+
+# Environment aktivieren
+.venv\Scripts\activate  # Windows
+source .venv/bin/activate  # Linux/Mac
+
+# Development-Dependencies installieren
+uv sync --group notebook
+```
+
+### Nützliche UV-Befehle
+```bash
+# Abhängigkeiten aktualisieren
+uv sync --upgrade
+
+# Spezifische Gruppe installieren
+uv sync --group notebook
+
+# Anwendung im Environment ausführen
+uv run python main.py
+```
