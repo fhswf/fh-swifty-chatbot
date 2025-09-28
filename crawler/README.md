@@ -1,13 +1,12 @@
 ## Scrapy crawler
 
-
 ### Input from gpt-5-mini
 
 Hier ist ein einsatzbereites Scrapy-Skript, das die ganze Site fh-swf.de crawlt, alle Antworten (HTML, PDFs, Bilder usw.) in einem konfigurierbaren Zielverzeichnis speichert und alle URLs überspringt, die das Muster "/intern/" enthalten. Der Zielpfad wird aus einer .env-Datei gelesen (mit python-dotenv). Das Skript ist als einzelne Datei lauffähig.
 
 Voraussetzungen:
 
-Python 3.7+
+Python 3.11+
 pip install scrapy python-dotenv
 Beispiel .env:
 TARGET_PATH=/pfad/zum/speicherort
