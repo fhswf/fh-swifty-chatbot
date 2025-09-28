@@ -4,9 +4,10 @@
 Ein intelligenter KI-Chatbot für die FH Südwestfalen (SWF), entwickelt mit LangGraph und Chainlit. Der Chatbot kann Fragen über die Hochschule und ihre Studiengänge beantworten und greift dabei auf die offizielle Website der FH SWF zu.
 
 ## Projektstatus
-- **Version**: 0.1.3
+- **Version**: 0.1.5
 - **Status**: In Entwicklung
 - **Python erforderlich**: >=3.13
+- **Letzte Aktualisierung**: 18. September 2025
 
 ## Technologie-Stack
 - **LangGraph**: Agent-basierte Architektur
@@ -14,6 +15,9 @@ Ein intelligenter KI-Chatbot für die FH Südwestfalen (SWF), entwickelt mit Lan
 - **OpenAI GPT-4**: Sprachmodell
 - **Tavily Search**: Web-Suche auf der FH SWF Website
 - **LangChain**: Framework für LLM-Anwendungen
+- **Docker**: Containerisierung
+- **Kubernetes**: Orchestrierung
+- **UV**: Python Package Manager
 
 ## Projektstruktur
 ```
@@ -87,7 +91,10 @@ Der Chatbot benötigt folgende Umgebungsvariablen:
 - ✅ Reaktive Agent-Architektur mit LangGraph
 - ✅ Modernes Web-Interface mit Chainlit
 - ✅ Docker-Containerisierung
+- ✅ Kubernetes-Deployment
 - ✅ Automatische Informationsbeschaffung
+- ✅ Jupyter Notebook-Integration
+- ✅ Automatische Versionierung mit Semantic Release
 
 ## Entwicklung
 Das Projekt verwendet die Python-Packaging-Struktur mit `pyproject.toml` und moderne LLM-Frameworks für eine skalierbare Chatbot-Architektur.
