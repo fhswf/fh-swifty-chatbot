@@ -1,6 +1,31 @@
 # CHANGELOG
 
 
+## v0.2.0 (2025-09-28)
+
+### Chores
+
+- Rename chatbot service to swifty-ui in docker-compose
+  ([`835aaa7`](https://github.com/fhswf/fh-swifty-chatbot/commit/835aaa7484df3f6038869ea38acb80e98d8f97e9))
+
+- Revert replicas
+  ([`8a2222d`](https://github.com/fhswf/fh-swifty-chatbot/commit/8a2222dae019200fe4a5ed0e933e2b4907b9b478))
+
+- Update licence
+  ([`c99814b`](https://github.com/fhswf/fh-swifty-chatbot/commit/c99814b3cb2f765c1dc5fb8b67ab2b1f7471e1fe))
+
+- Update readme for version 0.1.5, add last update date, and enhance technology stack details
+  ([`1530637`](https://github.com/fhswf/fh-swifty-chatbot/commit/153063735d08a887358d656796e57065cc3d4a12))
+
+### Features
+
+- Implement crawler
+  ([`28ef553`](https://github.com/fhswf/fh-swifty-chatbot/commit/28ef55350f7aae767c9f5c0b82a913dcf3fce477))
+
+- Use http cache to download updates only
+  ([`9e0708b`](https://github.com/fhswf/fh-swifty-chatbot/commit/9e0708bc75643fa77c33306d16670afbe6c6a22c))
+
+
 ## v0.1.5 (2025-09-18)
 
 ### Bug Fixes
