@@ -16,6 +16,11 @@ dependencies = [
 [tool.setuptools.packages.find]
 include = ["fh-swifty-chatbot*"]
 
+[tool.uv.workspace]
+members = [
+    "crawler",
+]
+
 [dependency-groups]
 notebook = [
     "crawl4ai>=0.7.4",
