@@ -45,6 +45,7 @@ FH-SWiFty-Chatbot/
     ├── agent_langgraph_app.py          # Haupt-Chatbot-Anwendung
     ├── main.py                         # Modul-Eingangspunkt
     ├── helpers/                         # Hilfsfunktionen
+    │   ├── openai_wrapper.py           # OpenAI API Wrapper
     │   ├── prompts.py                  # Prompt-Templates
     │   └── tools.py                    # Web-Such-Tools
     └── notebook/                        # Jupyter Notebooks
@@ -108,6 +109,7 @@ Der Chatbot benötigt folgende Umgebungsvariablen:
 
 ## Aktuelle Funktionen
 - ✅ Intelligente Gesprächsführung mit GPT-4
+- ✅ OpenAI API Wrapper für einheitliche Schnittstelle
 - ✅ Web-Suche auf der FH SWF Website
 - ✅ Reaktive Agent-Architektur mit LangGraph
 - ✅ Modernes Web-Interface mit Chainlit
@@ -116,6 +118,17 @@ Der Chatbot benötigt folgende Umgebungsvariablen:
 - ✅ Automatische Informationsbeschaffung
 - ✅ Jupyter Notebook-Integration
 - ✅ Automatische Versionierung mit Semantic Release
+
+## Architektur
+
+### OpenAI API Wrapper
+Der Chatbot verwendet einen eigenen API-Wrapper für OpenAI, der folgende Vorteile bietet:
+- **Einheitliche Schnittstelle**: Kapselt alle OpenAI-Anfragen
+- **Einfaches Debugging**: Zentrales Logging und Fehlerbehandlung
+- **Konfigurierbar**: Flexible Anpassung von Modell, Temperatur und weiteren Parametern
+- **LangChain-Integration**: Nahtlose Integration mit bestehenden LangChain-Komponenten
+
+Weitere Details finden sich in der [OpenAI Wrapper Dokumentation](fh-swifty-chatbot/helpers/OPENAI_WRAPPER.md).
 
 ## Entwicklung
 Das Projekt verwendet die Python-Packaging-Struktur mit `pyproject.toml` und moderne LLM-Frameworks für eine skalierbare Chatbot-Architektur.

@@ -1,7 +1,7 @@
 import chainlit as cl
-from langchain_openai import ChatOpenAI
 from typing import cast
 from helpers.tools import find_info_on_fhswf_website
+from helpers.openai_wrapper import create_openai_wrapper
 from langgraph.prebuilt import create_react_agent
 from helpers.prompts import prompt_langgraph
 from langchain.schema.runnable import Runnable, RunnableConfig
@@ -9,7 +9,14 @@ from langchain_core.messages import HumanMessage
 
 @cl.on_chat_start
 async def on_chat_start():
-    model = ChatOpenAI(model="gpt-4o", streaming=True)
+    # Verwende den OpenAI Wrapper für eine einheitliche Schnittstelle
+    openai_wrapper = create_openai_wrapper(
+        model="gpt-4o",
+        temperature=0.7,
+        streaming=True
+    )
+    model = openai_wrapper.get_model()
+    
     tools = [find_info_on_fhswf_website]
     agent = create_react_agent(
         model=model,
@@ -17,6 +24,7 @@ async def on_chat_start():
         prompt=prompt_langgraph
     )
     cl.user_session.set("agent_langgraph", agent)
+    cl.user_session.set("openai_wrapper", openai_wrapper)
 
 
 @cl.on_message
