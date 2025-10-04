@@ -1,18 +1,211 @@
-## Scrapy crawler
+# FH-SWF Web Crawler
 
-### Input from gpt-5-mini
+## Vue d'ensemble
 
-Hier ist ein einsatzbereites Scrapy-Skript, das die ganze Site fh-swf.de crawlt, alle Antworten (HTML, PDFs, Bilder usw.) in einem konfigurierbaren Zielverzeichnis speichert und alle URLs überspringt, die das Muster "/intern/" enthalten. Der Zielpfad wird aus einer .env-Datei gelesen (mit python-dotenv). Das Skript ist als einzelne Datei lauffähig.
+Ce répertoire contient deux crawlers pour le site web fh-swf.de:
 
-Voraussetzungen:
+1. **crawl_fhswf.py** - Crawler de fichiers (sauvegarde sur disque)
+2. **crawl_to_sqlite.py** - Crawler avec indexation SQLite (**NOUVEAU**)
+3. **query_db.py** - Utilitaire pour explorer la base de données SQLite
+
+## 🆕 Crawler SQLite (Recommandé)
+
+Le nouveau crawler SQLite indexe tout le contenu du site dans une base de données structurée, permettant des recherches rapides et des analyses complexes.
+
+### Caractéristiques
+
+- ✅ Indexation de toutes les URLs et leur contenu
+- ✅ Stockage des documents PDF dans la base de données
+- ✅ Extraction et indexation de tous les liens (internes et externes)
+- ✅ Recherche en texte intégral dans le contenu
+- ✅ Métadonnées complètes (titres, descriptions, checksums)
+- ✅ Cache HTTP pour éviter de re-télécharger les contenus inchangés
+- ✅ Support des redirections internes
+- ✅ Export des PDFs et des données
+
+### Installation
+
+#### Prérequis
+
+- Python 3.11+
+- Dépendances: `scrapy`, `python-dotenv`
+
+```bash
+pip install scrapy python-dotenv
+# Ou avec uv
+uv pip install scrapy python-dotenv
+```
+
+### Configuration
+
+Créez un fichier `.env` dans le répertoire racine du projet:
+
+```bash
+# Chemin pour stocker le cache HTTP et la base de données
+TARGET_PATH=./downloaded
+
+# Chemin de la base de données SQLite (optionnel)
+DB_PATH=./downloaded/crawl_index.db
+
+# Domaines à exclure (séparés par des virgules)
+EXCLUDE_DOMAINS=www7.fh-swf.de,static.bad.example
+```
+
+### Utilisation
+
+#### Lancer le crawler
+
+```bash
+cd crawler
+python crawl_to_sqlite.py
+```
+
+Le crawler va:
+1. Créer/ouvrir la base de données SQLite
+2. Crawler tout le site fh-swf.de
+3. Indexer tous les contenus, liens et PDFs
+4. Afficher les statistiques à la fin
+
+#### Explorer la base de données
+
+Utilisez l'utilitaire `query_db.py` pour explorer les données:
+
+```bash
+# Afficher les statistiques globales
+python query_db.py stats
+
+# Lister tous les PDFs
+python query_db.py pdfs
+
+# Lister avec limite personnalisée
+python query_db.py pdfs --limit 100
+
+# Rechercher dans le contenu des pages
+python query_db.py search "informatique"
+python query_db.py search "master" --limit 30
+
+# Lister les domaines crawlés
+python query_db.py domains
+
+# Voir tous les liens d'une page
+python query_db.py links "https://www.fh-swf.de/"
+
+# Exporter la liste des PDFs en CSV
+python query_db.py export-pdfs pdfs_list.csv
+
+# Exporter un PDF spécifique
+python query_db.py export-pdf "https://www.fh-swf.de/document.pdf" output.pdf
+```
+
+### Structure de la base de données
+
+La base de données SQLite contient 5 tables principales:
+
+#### 1. `urls`
+Toutes les URLs crawlées avec métadonnées:
+- url, domain, path, query_string
+- status_code, content_type, content_length
+- is_pdf, is_internal
+- checksum, timestamps
+
+#### 2. `page_content`
+Contenu des pages HTML:
+- html_content (BLOB)
+- text_content (texte extrait)
+- title, meta_description
+- headers
+
+#### 3. `links`
+Relations entre les pages:
+- source_url_id, target_url
+- link_text, link_type (a, img, script, etc.)
+- is_internal
+
+#### 4. `pdf_documents`
+Documents PDF complets:
+- file_name, file_size
+- content (BLOB)
+- checksum, metadata
+
+#### 5. `resources`
+Autres ressources (images, CSS, JS):
+- resource_type, file_name
+- content (BLOB)
+- checksum
+
+### Exemples de requêtes SQL
+
+Vous pouvez aussi requêter directement la base de données:
+
+```bash
+sqlite3 downloaded/crawl_index.db
+```
+
+```sql
+-- Trouver tous les PDFs de plus de 1 MB
+SELECT u.url, p.file_name, p.file_size 
+FROM pdf_documents p
+JOIN urls u ON p.url_id = u.id
+WHERE p.file_size > 1048576
+ORDER BY p.file_size DESC;
+
+-- Trouver les pages avec le plus de liens
+SELECT u.url, COUNT(*) as link_count
+FROM links l
+JOIN urls u ON l.source_url_id = u.id
+GROUP BY u.url
+ORDER BY link_count DESC
+LIMIT 10;
+
+-- Recherche en texte intégral
+SELECT u.url, p.title
+FROM page_content p
+JOIN urls u ON p.url_id = u.id
+WHERE p.text_content LIKE '%informatik%'
+LIMIT 20;
+
+-- Statistiques par domaine
+SELECT domain, 
+       COUNT(*) as total,
+       SUM(CASE WHEN is_pdf = 1 THEN 1 ELSE 0 END) as pdfs
+FROM urls
+GROUP BY domain;
+```
+
+### Avantages du crawler SQLite
+
+✅ **Recherche rapide**: Index sur les colonnes importantes  
+✅ **Analyse de données**: Requêtes SQL complexes possibles  
+✅ **Export facile**: CSV, JSON, ou extraction directe des PDFs  
+✅ **Graphe de liens**: Analyse des relations entre pages  
+✅ **Pas de doublons**: Vérification par checksum  
+✅ **Incrémental**: Re-crawl uniquement les pages modifiées  
+✅ **Portable**: Un seul fichier .db contient tout  
+
+---
+
+## Crawler de fichiers (Original)
+
+### Description
+
+Le crawler original `crawl_fhswf.py` sauvegarde tous les fichiers sur disque en préservant la structure des URLs.
+
+### Prérequis
 
 Python 3.11+
 pip install scrapy python-dotenv
-Beispiel .env:
-TARGET_PATH=/pfad/zum/speicherort
 
-Speichere das Script z. B. als crawl_fhswf.py und starte es mit:
+### Configuration .env
+
+```bash
+TARGET_PATH=/pfad/zum/speicherort
+```
+
+### Utilisation
+
+```bash
 python crawl_fhswf.py
+```
 
 Script (crawl_fhswf.py):
 
