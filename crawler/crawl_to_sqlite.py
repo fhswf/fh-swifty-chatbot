@@ -314,7 +314,7 @@ def extract_text_content(response: TextResponse) -> str:
             not(ancestor::noscript)
         ]
     """).getall()
-    text = " ".join(t.strip() for t in text_parts if t.strip())
+    text = "\n".join(t.strip() for t in text_parts if t.strip())
     return re.sub(r'\s+', ' ', text)
 
 def is_internal_url(url: str, base_domain: str = "fh-swf.de") -> bool:
