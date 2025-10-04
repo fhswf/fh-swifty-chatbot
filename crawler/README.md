@@ -14,11 +14,14 @@ Le nouveau crawler SQLite indexe tout le contenu du site dans une base de donné
 
 ### Caractéristiques
 
+- ✅ **Sauvegarde double**: Fichiers sur disque ET dans la base de données
 - ✅ Indexation de toutes les URLs et leur contenu
-- ✅ Stockage des documents PDF dans la base de données
+- ✅ Stockage des documents PDF (fichier + base de données)
+- ✅ Sauvegarde de toutes les pages HTML sur disque
+- ✅ Sauvegarde de toutes les images et ressources sur disque
 - ✅ Extraction et indexation de tous les liens (internes et externes)
 - ✅ Recherche en texte intégral dans le contenu
-- ✅ Métadonnées complètes (titres, descriptions, checksums)
+- ✅ Métadonnées complètes (titres, descriptions, checksums, chemins de fichiers)
 - ✅ Cache HTTP pour éviter de re-télécharger les contenus inchangés
 - ✅ Support des redirections internes
 - ✅ Export des PDFs et des données
@@ -41,15 +44,23 @@ uv pip install scrapy python-dotenv
 Créez un fichier `.env` dans le répertoire racine du projet:
 
 ```bash
-# Chemin pour stocker le cache HTTP et la base de données
+# Chemin de base pour stocker les données, le cache HTTP et la base de données
 TARGET_PATH=./downloaded
 
-# Chemin de la base de données SQLite (optionnel)
+# Chemin pour sauvegarder les fichiers (HTML, PDF, images)
+STORAGE_PATH=./downloaded/data
+
+# Chemin de la base de données SQLite (optionnel, par défaut: TARGET_PATH/crawl_index.db)
 DB_PATH=./downloaded/crawl_index.db
 
-# Domaines à exclure (séparés par des virgules)
+# Domaines à exclure du crawl (séparés par des virgules, supporte les wildcards)
 EXCLUDE_DOMAINS=www7.fh-swf.de,static.bad.example
 ```
+
+**Explication des chemins:**
+- `TARGET_PATH`: Répertoire racine pour tous les fichiers du crawler
+- `STORAGE_PATH`: Où sauvegarder physiquement les fichiers HTML, PDF, images (préserve la structure des URLs)
+- `DB_PATH`: Où sauvegarder la base de données SQLite avec l'index et les métadonnées
 
 ### Utilisation
 
@@ -62,9 +73,25 @@ python crawl_to_sqlite.py
 
 Le crawler va:
 1. Créer/ouvrir la base de données SQLite
-2. Crawler tout le site fh-swf.de
-3. Indexer tous les contenus, liens et PDFs
-4. Afficher les statistiques à la fin
+2. Créer la structure de répertoires dans STORAGE_PATH
+3. Crawler tout le site fh-swf.de
+4. Sauvegarder chaque fichier sur disque (STORAGE_PATH)
+5. Indexer tous les contenus, liens et PDFs dans la base de données
+6. Afficher les statistiques à la fin
+
+**Système de sauvegarde double:**
+- **Fichiers sur disque** (`STORAGE_PATH/`): Tous les fichiers sont sauvegardés physiquement
+  - Préserve la structure des URLs: `www.fh-swf.de/path/to/page.html`
+  - Fichiers directement utilisables sans base de données
+  - Peut être servi par un serveur web statique
+  
+- **Base de données** (`DB_PATH`): Index et métadonnées
+  - Contenu complet des pages (HTML + texte extrait)
+  - Documents PDF en BLOB
+  - Toutes les images et ressources en BLOB
+  - Graphe complet des liens entre les pages
+  - Recherche rapide en texte intégral
+  - Métadonnées: checksums, dates, types MIME, chemins des fichiers
 
 #### Explorer la base de données
 
@@ -106,6 +133,7 @@ Toutes les URLs crawlées avec métadonnées:
 - url, domain, path, query_string
 - status_code, content_type, content_length
 - is_pdf, is_internal
+- file_path (chemin du fichier sauvegardé sur disque)
 - checksum, timestamps
 
 #### 2. `page_content`
@@ -124,13 +152,15 @@ Relations entre les pages:
 #### 4. `pdf_documents`
 Documents PDF complets:
 - file_name, file_size
-- content (BLOB)
+- file_path (chemin du fichier PDF sur disque)
+- content (BLOB - contenu du PDF dans la base de données)
 - checksum, metadata
 
 #### 5. `resources`
 Autres ressources (images, CSS, JS):
 - resource_type, file_name
-- content (BLOB)
+- file_path (chemin de la ressource sur disque)
+- content (BLOB - contenu de la ressource dans la base de données)
 - checksum
 
 ### Exemples de requêtes SQL
@@ -142,8 +172,8 @@ sqlite3 downloaded/crawl_index.db
 ```
 
 ```sql
--- Trouver tous les PDFs de plus de 1 MB
-SELECT u.url, p.file_name, p.file_size 
+-- Trouver tous les PDFs de plus de 1 MB avec leurs chemins de fichiers
+SELECT u.url, p.file_name, p.file_path, p.file_size 
 FROM pdf_documents p
 JOIN urls u ON p.url_id = u.id
 WHERE p.file_size > 1048576
@@ -170,6 +200,18 @@ SELECT domain,
        SUM(CASE WHEN is_pdf = 1 THEN 1 ELSE 0 END) as pdfs
 FROM urls
 GROUP BY domain;
+
+-- Lister toutes les images sauvegardées avec leurs chemins
+SELECT u.url, r.file_path, r.file_size
+FROM resources r
+JOIN urls u ON r.url_id = u.id
+WHERE r.resource_type LIKE 'image/%'
+ORDER BY r.file_size DESC;
+
+-- Obtenir le chemin de fichier pour une URL spécifique
+SELECT url, file_path 
+FROM urls 
+WHERE url = 'https://www.fh-swf.de/example.html';
 ```
 
 ### Avantages du crawler SQLite

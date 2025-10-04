@@ -93,7 +93,7 @@ class CrawlDatabase:
         print("-" * 100)
         
         self.cursor.execute("""
-            SELECT u.url, p.file_name, p.file_size, u.last_crawled
+            SELECT u.url, p.file_name, p.file_size, p.file_path, u.last_crawled
             FROM pdf_documents p
             JOIN urls u ON p.url_id = u.id
             ORDER BY p.file_size DESC
@@ -112,6 +112,8 @@ class CrawlDatabase:
             print(f"     URL:    {row['url']}")
             print(f"     Taille: {size}")
             print(f"     Date:   {row['last_crawled']}")
+            if row['file_path']:
+                print(f"     Fichier: {row['file_path']}")
             print()
     
     def search_pages(self, query: str, limit: int = 20):
@@ -221,7 +223,7 @@ class CrawlDatabase:
         import csv
         
         self.cursor.execute("""
-            SELECT u.url, p.file_name, p.file_size, u.last_crawled
+            SELECT u.url, p.file_name, p.file_path, p.file_size, u.last_crawled
             FROM pdf_documents p
             JOIN urls u ON p.url_id = u.id
             ORDER BY u.url
@@ -231,10 +233,10 @@ class CrawlDatabase:
         
         with open(output_file, 'w', newline='', encoding='utf-8') as f:
             writer = csv.writer(f)
-            writer.writerow(['URL', 'File Name', 'Size (bytes)', 'Crawled At'])
+            writer.writerow(['URL', 'File Name', 'File Path', 'Size (bytes)', 'Crawled At'])
             
             for row in rows:
-                writer.writerow([row['url'], row['file_name'], row['file_size'], row['last_crawled']])
+                writer.writerow([row['url'], row['file_name'], row['file_path'], row['file_size'], row['last_crawled']])
         
         print(f"✓ Liste des PDFs exportée vers: {output_file}")
         print(f"  {len(rows)} PDFs exportés")

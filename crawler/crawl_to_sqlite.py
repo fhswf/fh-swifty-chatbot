@@ -10,8 +10,6 @@ import os
 import re
 import hashlib
 import sqlite3
-import mimetypes
-from datetime import datetime
 from urllib.parse import urlparse, unquote
 from pathlib import Path
 from typing import Optional, Dict, Any
@@ -28,6 +26,9 @@ TARGET_PATH = os.path.abspath(TARGET_PATH)
 
 DB_PATH = os.getenv("DB_PATH", os.path.join(TARGET_PATH, "crawl_index.db"))
 DB_PATH = os.path.abspath(DB_PATH)
+
+STORAGE_PATH = os.getenv("STORAGE_PATH", os.path.join(TARGET_PATH, "data"))
+STORAGE_PATH = os.path.abspath(STORAGE_PATH)
 
 EXCLUDE_DOMAINS = os.getenv("EXCLUDE_DOMAINS", "").strip()
 EXCLUDE_DOMAINS_LIST = [d.strip() for d in EXCLUDE_DOMAINS.split(",") if d.strip()]
@@ -63,6 +64,7 @@ class DatabaseManager:
                 status_code INTEGER,
                 content_type TEXT,
                 content_length INTEGER,
+                file_path TEXT,
                 last_crawled TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 first_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 is_pdf BOOLEAN DEFAULT 0,
@@ -108,6 +110,7 @@ class DatabaseManager:
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 url_id INTEGER NOT NULL,
                 file_name TEXT,
+                file_path TEXT,
                 file_size INTEGER,
                 content BLOB,
                 checksum TEXT,
@@ -124,6 +127,7 @@ class DatabaseManager:
                 url_id INTEGER NOT NULL,
                 resource_type TEXT,
                 file_name TEXT,
+                file_path TEXT,
                 file_size INTEGER,
                 content BLOB,
                 checksum TEXT,
@@ -144,24 +148,25 @@ class DatabaseManager:
     
     def insert_or_update_url(self, url: str, status_code: int, content_type: str,
                             content_length: int, is_pdf: bool, is_internal: bool,
-                            checksum: str) -> int:
+                            checksum: str, file_path: str = None) -> int:
         """Insère ou met à jour une URL et retourne son ID"""
         cursor = self.conn.cursor()
         parsed = urlparse(url)
         
         cursor.execute("""
             INSERT INTO urls (url, domain, path, query_string, status_code, 
-                            content_type, content_length, is_pdf, is_internal, checksum)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                            content_type, content_length, is_pdf, is_internal, checksum, file_path)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(url) DO UPDATE SET
                 status_code = excluded.status_code,
                 content_type = excluded.content_type,
                 content_length = excluded.content_length,
                 last_crawled = CURRENT_TIMESTAMP,
-                checksum = excluded.checksum
+                checksum = excluded.checksum,
+                file_path = excluded.file_path
             RETURNING id
         """, (url, parsed.netloc, parsed.path, parsed.query, status_code,
-              content_type, content_length, is_pdf, is_internal, checksum))
+              content_type, content_length, is_pdf, is_internal, checksum, file_path))
         
         result = cursor.fetchone()
         url_id = result[0]
@@ -192,25 +197,25 @@ class DatabaseManager:
         self.conn.commit()
     
     def insert_pdf(self, url_id: int, file_name: str, content: bytes, 
-                   file_size: int, checksum: str):
+                   file_size: int, checksum: str, file_path: str = None):
         """Insère un document PDF"""
         cursor = self.conn.cursor()
         cursor.execute("""
             INSERT OR REPLACE INTO pdf_documents 
-            (url_id, file_name, content, file_size, checksum)
-            VALUES (?, ?, ?, ?, ?)
-        """, (url_id, file_name, content, file_size, checksum))
+            (url_id, file_name, content, file_size, checksum, file_path)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, (url_id, file_name, content, file_size, checksum, file_path))
         self.conn.commit()
     
     def insert_resource(self, url_id: int, resource_type: str, file_name: str,
-                       content: bytes, file_size: int, checksum: str):
+                       content: bytes, file_size: int, checksum: str, file_path: str = None):
         """Insère une ressource (image, CSS, JS, etc.)"""
         cursor = self.conn.cursor()
         cursor.execute("""
             INSERT OR REPLACE INTO resources 
-            (url_id, resource_type, file_name, content, file_size, checksum)
-            VALUES (?, ?, ?, ?, ?, ?)
-        """, (url_id, resource_type, file_name, content, file_size, checksum))
+            (url_id, resource_type, file_name, content, file_size, checksum, file_path)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (url_id, resource_type, file_name, content, file_size, checksum, file_path))
         self.conn.commit()
     
     def get_stats(self) -> Dict[str, Any]:
@@ -247,6 +252,54 @@ class DatabaseManager:
             self.conn.close()
 
 # --- Utility Functions ---
+def sanitize_path_component(s: str) -> str:
+    """Nettoie un composant de chemin pour le système de fichiers"""
+    s = unquote(s or "")
+    s = s.replace("\\", "/")
+    s = re.sub(r"[^A-Za-z0-9\-\._\u00C0-\u017F]+", "_", s)
+    s = s.strip("._")
+    return s or "_"
+
+def url_to_local_path(url: str, base_dir: str) -> str:
+    """Convertit une URL en chemin de fichier local"""
+    parsed = urlparse(url)
+    netloc = sanitize_path_component(parsed.netloc)
+    path = parsed.path or "/"
+    
+    comps = [sanitize_path_component(c) for c in path.split("/") if c != ""]
+    if path.endswith("/") or (len(comps) == 0):
+        comps.append("index.html")
+    else:
+        last = comps[-1]
+        if not re.search(r"\.[A-Za-z0-9]{1,6}$", last):
+            comps[-1] = last + ".html"
+    
+    if parsed.query:
+        qhash = hashlib.sha1(parsed.query.encode("utf-8")).hexdigest()[:8]
+        filename = comps[-1]
+        m = re.match(r"^(.*?)(\.[A-Za-z0-9]{1,6})?$", filename)
+        base = m.group(1) if m else filename
+        ext = m.group(2) if m and m.group(2) else ""
+        comps[-1] = f"{base}_{qhash}{ext}"
+    
+    local_path = Path(base_dir) / netloc
+    for c in comps:
+        local_path /= c
+    return str(local_path)
+
+def save_file_to_disk(url: str, content: bytes, base_dir: str) -> Optional[str]:
+    """Sauvegarde un fichier sur le disque et retourne le chemin"""
+    try:
+        local_path = url_to_local_path(url, base_dir)
+        local_file = Path(local_path)
+        local_file.parent.mkdir(parents=True, exist_ok=True)
+        with local_file.open("wb") as f:
+            f.write(content)
+        return local_path
+    except Exception as e:
+        print(f"Erreur lors de la sauvegarde de {url}: {e}")
+        return None
+
 def compute_checksum(content: bytes) -> str:
     """Calcule le hash SHA256 du contenu"""
     return hashlib.sha256(content).hexdigest()
@@ -337,6 +390,9 @@ class FHSWFSQLiteSpider(scrapy.Spider):
             self.logger.debug("Skipping (intern): %s", url)
             return
         
+        # Sauvegarder le fichier sur le disque
+        file_path = save_file_to_disk(url, response.body, STORAGE_PATH)
+        
         # Calculer le checksum
         checksum = compute_checksum(response.body)
         
@@ -352,7 +408,8 @@ class FHSWFSQLiteSpider(scrapy.Spider):
             content_length=len(response.body),
             is_pdf=is_pdf,
             is_internal=self._is_internal_and_allowed(url),
-            checksum=checksum
+            checksum=checksum,
+            file_path=file_path
         )
         
         self.crawled_count += 1
@@ -391,9 +448,10 @@ class FHSWFSQLiteSpider(scrapy.Spider):
                 file_name=file_name,
                 content=response.body,
                 file_size=len(response.body),
-                checksum=checksum
+                checksum=checksum,
+                file_path=file_path
             )
-            self.logger.info(f"✓ Saved PDF: {file_name} ({len(response.body)} bytes)")
+            self.logger.info(f"✓ Saved PDF: {file_name} ({len(response.body)} bytes) -> {file_path}")
             return
         
         # Traiter les pages HTML
@@ -478,8 +536,10 @@ class FHSWFSQLiteSpider(scrapy.Spider):
                 file_name=file_name,
                 content=response.body,
                 file_size=len(response.body),
-                checksum=checksum
+                checksum=checksum,
+                file_path=file_path
             )
+            self.logger.debug(f"✓ Saved resource: {file_name} -> {file_path}")
     
     def closed(self, reason):
         """Appelé quand le spider se termine"""
@@ -501,13 +561,17 @@ class FHSWFSQLiteSpider(scrapy.Spider):
 
 # --- Runner ---
 def main():
-    print("=" * 60)
-    print("FH-SWF Crawler avec indexation SQLite")
-    print("=" * 60)
-    print(f"TARGET_PATH: {TARGET_PATH}")
-    print(f"DB_PATH:     {DB_PATH}")
-    print(f"Exclusions:  {EXCLUDE_DOMAINS_LIST or 'Aucune'}")
-    print("=" * 60)
+    print("=" * 70)
+    print("FH-SWF Crawler avec indexation SQLite + Sauvegarde fichiers")
+    print("=" * 70)
+    print(f"TARGET_PATH:  {TARGET_PATH}")
+    print(f"STORAGE_PATH: {STORAGE_PATH}")
+    print(f"DB_PATH:      {DB_PATH}")
+    print(f"Exclusions:   {EXCLUDE_DOMAINS_LIST or 'Aucune'}")
+    print("=" * 70)
+    print("📁 Tous les fichiers (HTML, PDF, images) seront sauvegardés dans STORAGE_PATH")
+    print("🗄️  Toutes les métadonnées et le contenu seront indexés dans la base de données")
+    print("=" * 70)
     print("Démarrage du crawl...")
     print()
     
