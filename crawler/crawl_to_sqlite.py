@@ -41,6 +41,12 @@ class DatabaseManager:
     
     def init_database(self):
         """Initialise la structure de la base de données"""
+        # Créer le répertoire parent s'il n'existe pas
+        db_dir = os.path.dirname(self.db_path)
+        if db_dir and not os.path.exists(db_dir):
+            os.makedirs(db_dir, exist_ok=True)
+            print(f"✓ Répertoire créé: {db_dir}")
+        
         self.conn = sqlite3.connect(self.db_path, check_same_thread=False)
         self.conn.row_factory = sqlite3.Row
         
