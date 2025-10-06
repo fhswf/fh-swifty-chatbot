@@ -20,9 +20,11 @@ from scrapy.crawler import CrawlerProcess
 from scrapy.http import TextResponse, Response
 from neo4j import GraphDatabase
 
+from docling.document_converter import DocumentConverter
+
 # --- Configuration ---
 load_dotenv()
-TARGET_PATH = os.getenv("TARGET_PATH", "").strip() or "./downloaded"
+TARGET_PATH = os.getenv("TARGET_PATH", "").strip() or "./downloaded_v2"
 TARGET_PATH = os.path.abspath(TARGET_PATH)
 
 DB_PATH = os.getenv("DB_PATH", os.path.join(TARGET_PATH, "crawl_index.db"))
@@ -37,8 +39,8 @@ EXCLUDE_DOMAINS_LIST = [d.strip() for d in EXCLUDE_DOMAINS.split(",") if d.strip
 # Neo4j Configuration
 NEO4J_URI = os.getenv("NEO4J_URI", "bolt://localhost:7687")
 NEO4J_USER = os.getenv("NEO4J_USER", "neo4j")
-NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD", "password")
-NEO4J_ENABLED = os.getenv("NEO4J_ENABLED", "false").lower() in ["true", "1", "yes"]
+NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD", "password123")
+NEO4J_ENABLED = os.getenv("NEO4J_ENABLED", "true").lower() in ["true", "1", "yes"]
 
 # --- Database Schema ---
 class DatabaseManager:
@@ -86,8 +88,8 @@ class DatabaseManager:
             CREATE TABLE IF NOT EXISTS page_content (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 url_id INTEGER NOT NULL,
-                html_content BLOB,
                 text_content TEXT,
+                markdown_content TEXT,
                 title TEXT,
                 meta_description TEXT,
                 headers TEXT,
@@ -119,7 +121,7 @@ class DatabaseManager:
                 file_name TEXT,
                 file_path TEXT,
                 file_size INTEGER,
-                content BLOB,
+                markdown_content TEXT,
                 checksum TEXT,
                 metadata TEXT,
                 indexed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -136,7 +138,6 @@ class DatabaseManager:
                 file_name TEXT,
                 file_path TEXT,
                 file_size INTEGER,
-                content BLOB,
                 checksum TEXT,
                 FOREIGN KEY (url_id) REFERENCES urls(id) ON DELETE CASCADE
             )
@@ -180,16 +181,15 @@ class DatabaseManager:
         self.conn.commit()
         return url_id
     
-    def insert_page_content(self, url_id: int, html_content: bytes, 
-                           text_content: str, title: str, meta_description: str,
-                           headers: str):
+    def insert_page_content(self, url_id: int, text_content: str, markdown_content: str, 
+                           title: str, meta_description: str, headers: str):
         """Insère le contenu d'une page"""
         cursor = self.conn.cursor()
         cursor.execute("""
             INSERT OR REPLACE INTO page_content 
-            (url_id, html_content, text_content, title, meta_description, headers)
+            (url_id, text_content, markdown_content, title, meta_description, headers)
             VALUES (?, ?, ?, ?, ?, ?)
-        """, (url_id, html_content, text_content, title, meta_description, headers))
+        """, (url_id, text_content, markdown_content, title, meta_description, headers))
         self.conn.commit()
     
     def insert_link(self, source_url_id: int, target_url: str, link_text: str,
@@ -203,26 +203,26 @@ class DatabaseManager:
         """, (source_url_id, target_url, link_text or "", link_type, is_internal))
         self.conn.commit()
     
-    def insert_pdf(self, url_id: int, file_name: str, content: bytes, 
+    def insert_pdf(self, url_id: int, file_name: str, markdown_content: str, 
                    file_size: int, checksum: str, file_path: str = None):
         """Insère un document PDF"""
         cursor = self.conn.cursor()
         cursor.execute("""
             INSERT OR REPLACE INTO pdf_documents 
-            (url_id, file_name, content, file_size, checksum, file_path)
+            (url_id, file_name, markdown_content, file_size, checksum, file_path)
             VALUES (?, ?, ?, ?, ?, ?)
-        """, (url_id, file_name, content, file_size, checksum, file_path))
+        """, (url_id, file_name, markdown_content, file_size, checksum, file_path))
         self.conn.commit()
     
     def insert_resource(self, url_id: int, resource_type: str, file_name: str,
-                       content: bytes, file_size: int, checksum: str, file_path: str = None):
+                        file_size: int, checksum: str, file_path: str = None):
         """Insère une ressource (image, CSS, JS, etc.)"""
         cursor = self.conn.cursor()
         cursor.execute("""
             INSERT OR REPLACE INTO resources 
-            (url_id, resource_type, file_name, content, file_size, checksum, file_path)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        """, (url_id, resource_type, file_name, content, file_size, checksum, file_path))
+            (url_id, resource_type, file_name, file_size, checksum, file_path)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, (url_id, resource_type, file_name, file_size, checksum, file_path))
         self.conn.commit()
     
     def get_stats(self) -> Dict[str, Any]:
@@ -351,8 +351,8 @@ class Neo4jManager:
             print(f"Erreur Neo4j create_url_node: {e}")
             return False
     
-    def create_page_content(self, url: str, text_content: str, title: str, 
-                           meta_description: str):
+    def create_page_content(self, url: str, text_content: str, markdown_content: str,
+                            title: str, meta_description: str):
         """Crée un nœud Page et le lie à l'URL"""
         if not self.driver:
             return
@@ -365,13 +365,15 @@ class Neo4jManager:
                     SET p.title = $title,
                         p.meta_description = $meta_description,
                         p.text_content = $text_content,
+                        p.markdown_content = $markdown_content,
                         p.updated_at = datetime()
                     MERGE (u)-[:HAS_CONTENT]->(p)
                 """, {
                     'url': url,
                     'title': title,
                     'meta_description': meta_description,
-                    'text_content': text_content[:10000]  # Limiter la taille
+                    'text_content': text_content,
+                    'markdown_content': markdown_content
                 })
         except Exception as e:
             print(f"Erreur Neo4j create_page_content: {e}")
@@ -405,7 +407,7 @@ class Neo4jManager:
         except Exception as e:
             print(f"Erreur Neo4j create_link: {e}")
     
-    def create_pdf_node(self, url: str, file_name: str, file_size: int, 
+    def create_pdf_node(self, url: str, file_name: str, markdown_content: str, file_size: int, 
                        checksum: str, file_path: str = None):
         """Crée un nœud PDF et le lie à l'URL"""
         if not self.driver:
@@ -417,6 +419,7 @@ class Neo4jManager:
                     MATCH (u:URL {url: $url})
                     MERGE (pdf:PDF {url: $url})
                     SET pdf.file_name = $file_name,
+                        pdf.markdown_content = $markdown_content,
                         pdf.file_size = $file_size,
                         pdf.checksum = $checksum,
                         pdf.file_path = $file_path,
@@ -425,6 +428,7 @@ class Neo4jManager:
                 """, {
                     'url': url,
                     'file_name': file_name,
+                    'markdown_content': markdown_content,
                     'file_size': file_size,
                     'checksum': checksum,
                     'file_path': file_path
@@ -632,6 +636,9 @@ class FHSWFSQLiteSpider(scrapy.Spider):
         if NEO4J_ENABLED:
             self.neo4j = Neo4jManager(NEO4J_URI, NEO4J_USER, NEO4J_PASSWORD)
         
+        self.converter = DocumentConverter()
+        self.converter.format_to_options['pdf'].pipeline_options.do_ocr = False
+        
         self.crawled_count = 0
         self.pdf_count = 0
     
@@ -667,6 +674,7 @@ class FHSWFSQLiteSpider(scrapy.Spider):
         # Déterminer le type de contenu
         content_type = response.headers.get('Content-Type', b'').decode('utf-8', 'ignore')
         is_pdf = 'application/pdf' in content_type.lower() or url.lower().endswith('.pdf')
+        is_html = 'text/html' in content_type.lower() or url.lower().endswith('.html') or url.lower().endswith('.php')
         
         # Insérer/mettre à jour l'URL dans SQLite
         url_id = self.db.insert_or_update_url(
@@ -728,12 +736,15 @@ class FHSWFSQLiteSpider(scrapy.Spider):
         if is_pdf:
             self.pdf_count += 1
             file_name = os.path.basename(urlparse(url).path) or f"document_{url_id}.pdf"
-            
+
+            result = self.converter.convert(file_path)
+            markdown_content = result.document.export_to_markdown()
+
             # SQLite
             self.db.insert_pdf(
                 url_id=url_id,
                 file_name=file_name,
-                content=response.body,
+                markdown_content=markdown_content,
                 file_size=len(response.body),
                 checksum=checksum,
                 file_path=file_path
@@ -744,6 +755,7 @@ class FHSWFSQLiteSpider(scrapy.Spider):
                 self.neo4j.create_pdf_node(
                     url=url,
                     file_name=file_name,
+                    markdown_content=markdown_content,
                     file_size=len(response.body),
                     checksum=checksum,
                     file_path=file_path
@@ -753,18 +765,23 @@ class FHSWFSQLiteSpider(scrapy.Spider):
             return
         
         # Traiter les pages HTML
-        if isinstance(response, TextResponse):
+        if is_html:
             # Extraire les métadonnées
             title = response.xpath('//title/text()').get() or ""
             meta_desc = response.xpath('//meta[@name="description"]/@content').get() or ""
             text_content = extract_text_content(response)
             headers_str = str(dict(response.headers))
+
+            print("=" * 70)
+
+            result = self.converter.convert(file_path)
+            markdown_content = result.document.export_to_markdown()
             
             # Sauvegarder le contenu de la page dans SQLite
             self.db.insert_page_content(
                 url_id=url_id,
-                html_content=response.body,
                 text_content=text_content,
+                markdown_content=markdown_content,
                 title=title.strip(),
                 meta_description=meta_desc.strip(),
                 headers=headers_str
@@ -775,6 +792,7 @@ class FHSWFSQLiteSpider(scrapy.Spider):
                 self.neo4j.create_page_content(
                     url=url,
                     text_content=text_content,
+                    markdown_content=markdown_content,
                     title=title.strip(),
                     meta_description=meta_desc.strip()
                 )
@@ -852,7 +870,6 @@ class FHSWFSQLiteSpider(scrapy.Spider):
                 url_id=url_id,
                 resource_type=resource_type,
                 file_name=file_name,
-                content=response.body,
                 file_size=len(response.body),
                 checksum=checksum,
                 file_path=file_path
