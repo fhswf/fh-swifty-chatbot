@@ -18,6 +18,7 @@ from dotenv import load_dotenv
 import scrapy
 from scrapy.crawler import CrawlerProcess
 from scrapy.http import TextResponse, Response
+from neo4j import GraphDatabase
 
 # --- Configuration ---
 load_dotenv()
@@ -32,6 +33,12 @@ STORAGE_PATH = os.path.abspath(STORAGE_PATH)
 
 EXCLUDE_DOMAINS = os.getenv("EXCLUDE_DOMAINS", "").strip()
 EXCLUDE_DOMAINS_LIST = [d.strip() for d in EXCLUDE_DOMAINS.split(",") if d.strip()]
+
+# Neo4j Configuration
+NEO4J_URI = os.getenv("NEO4J_URI", "bolt://localhost:7687")
+NEO4J_USER = os.getenv("NEO4J_USER", "neo4j")
+NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD", "password")
+NEO4J_ENABLED = os.getenv("NEO4J_ENABLED", "false").lower() in ["true", "1", "yes"]
 
 # --- Database Schema ---
 class DatabaseManager:
@@ -251,6 +258,261 @@ class DatabaseManager:
         if self.conn:
             self.conn.close()
 
+# --- Neo4j Manager ---
+class Neo4jManager:
+    """Gestionnaire de connexion et opérations Neo4j"""
+    
+    def __init__(self, uri: str, user: str, password: str):
+        self.driver = None
+        try:
+            self.driver = GraphDatabase.driver(uri, auth=(user, password))
+            # Vérifier la connexion
+            self.driver.verify_connectivity()
+            self.init_constraints()
+            print(f"✓ Connexion à Neo4j établie: {uri}")
+        except Exception as e:
+            print(f"⚠️  Erreur de connexion à Neo4j: {e}")
+            print("   Le crawler continuera sans Neo4j.")
+            self.driver = None
+    
+    def init_constraints(self):
+        """Crée les contraintes et index dans Neo4j"""
+        if not self.driver:
+            return
+        
+        with self.driver.session() as session:
+            # Contraintes d'unicité
+            constraints = [
+                "CREATE CONSTRAINT url_unique IF NOT EXISTS FOR (u:URL) REQUIRE u.url IS UNIQUE",
+                "CREATE CONSTRAINT page_unique IF NOT EXISTS FOR (p:Page) REQUIRE p.url IS UNIQUE",
+                "CREATE CONSTRAINT pdf_unique IF NOT EXISTS FOR (p:PDF) REQUIRE p.url IS UNIQUE",
+            ]
+            
+            for constraint in constraints:
+                try:
+                    session.run(constraint)
+                except Exception:
+                    # Contrainte peut déjà exister
+                    pass
+            
+            # Index pour améliorer les performances
+            indexes = [
+                "CREATE INDEX url_domain IF NOT EXISTS FOR (u:URL) ON (u.domain)",
+                "CREATE INDEX url_checksum IF NOT EXISTS FOR (u:URL) ON (u.checksum)",
+                "CREATE INDEX page_title IF NOT EXISTS FOR (p:Page) ON (p.title)",
+            ]
+            
+            for index in indexes:
+                try:
+                    session.run(index)
+                except Exception:
+                    pass
+    
+    def create_url_node(self, url: str, status_code: int, content_type: str,
+                       content_length: int, is_pdf: bool, is_internal: bool,
+                       checksum: str, file_path: str = None) -> bool:
+        """Crée ou met à jour un nœud URL"""
+        if not self.driver:
+            return False
+        
+        try:
+            parsed = urlparse(url)
+            
+            with self.driver.session() as session:
+                session.run("""
+                    MERGE (u:URL {url: $url})
+                    SET u.domain = $domain,
+                        u.path = $path,
+                        u.query_string = $query_string,
+                        u.status_code = $status_code,
+                        u.content_type = $content_type,
+                        u.content_length = $content_length,
+                        u.is_pdf = $is_pdf,
+                        u.is_internal = $is_internal,
+                        u.checksum = $checksum,
+                        u.file_path = $file_path,
+                        u.last_crawled = datetime(),
+                        u.first_seen = coalesce(u.first_seen, datetime())
+                """, {
+                    'url': url,
+                    'domain': parsed.netloc,
+                    'path': parsed.path,
+                    'query_string': parsed.query,
+                    'status_code': status_code,
+                    'content_type': content_type,
+                    'content_length': content_length,
+                    'is_pdf': is_pdf,
+                    'is_internal': is_internal,
+                    'checksum': checksum,
+                    'file_path': file_path
+                })
+            return True
+        except Exception as e:
+            print(f"Erreur Neo4j create_url_node: {e}")
+            return False
+    
+    def create_page_content(self, url: str, text_content: str, title: str, 
+                           meta_description: str):
+        """Crée un nœud Page et le lie à l'URL"""
+        if not self.driver:
+            return
+        
+        try:
+            with self.driver.session() as session:
+                session.run("""
+                    MATCH (u:URL {url: $url})
+                    MERGE (p:Page {url: $url})
+                    SET p.title = $title,
+                        p.meta_description = $meta_description,
+                        p.text_content = $text_content,
+                        p.updated_at = datetime()
+                    MERGE (u)-[:HAS_CONTENT]->(p)
+                """, {
+                    'url': url,
+                    'title': title,
+                    'meta_description': meta_description,
+                    'text_content': text_content[:10000]  # Limiter la taille
+                })
+        except Exception as e:
+            print(f"Erreur Neo4j create_page_content: {e}")
+    
+    def create_link(self, source_url: str, target_url: str, link_text: str,
+                   link_type: str, is_internal: bool):
+        """Crée une relation LINKS_TO entre deux URLs"""
+        if not self.driver:
+            return
+        
+        try:
+            with self.driver.session() as session:
+                # Créer les nœuds URL si nécessaire et la relation
+                session.run("""
+                    MERGE (source:URL {url: $source_url})
+                    MERGE (target:URL {url: $target_url})
+                    ON CREATE SET target.is_internal = $is_internal,
+                                  target.first_seen = datetime()
+                    MERGE (source)-[r:LINKS_TO]->(target)
+                    SET r.link_text = $link_text,
+                        r.link_type = $link_type,
+                        r.is_internal = $is_internal,
+                        r.discovered_at = coalesce(r.discovered_at, datetime())
+                """, {
+                    'source_url': source_url,
+                    'target_url': target_url,
+                    'link_text': link_text or "",
+                    'link_type': link_type,
+                    'is_internal': is_internal
+                })
+        except Exception as e:
+            print(f"Erreur Neo4j create_link: {e}")
+    
+    def create_pdf_node(self, url: str, file_name: str, file_size: int, 
+                       checksum: str, file_path: str = None):
+        """Crée un nœud PDF et le lie à l'URL"""
+        if not self.driver:
+            return
+        
+        try:
+            with self.driver.session() as session:
+                session.run("""
+                    MATCH (u:URL {url: $url})
+                    MERGE (pdf:PDF {url: $url})
+                    SET pdf.file_name = $file_name,
+                        pdf.file_size = $file_size,
+                        pdf.checksum = $checksum,
+                        pdf.file_path = $file_path,
+                        pdf.indexed_at = datetime()
+                    MERGE (u)-[:HAS_PDF]->(pdf)
+                """, {
+                    'url': url,
+                    'file_name': file_name,
+                    'file_size': file_size,
+                    'checksum': checksum,
+                    'file_path': file_path
+                })
+        except Exception as e:
+            print(f"Erreur Neo4j create_pdf_node: {e}")
+    
+    def create_resource_node(self, url: str, resource_type: str, file_name: str,
+                            file_size: int, checksum: str, file_path: str = None):
+        """Crée un nœud Resource et le lie à l'URL"""
+        if not self.driver:
+            return
+        
+        try:
+            with self.driver.session() as session:
+                session.run("""
+                    MATCH (u:URL {url: $url})
+                    MERGE (r:Resource {url: $url})
+                    SET r.resource_type = $resource_type,
+                        r.file_name = $file_name,
+                        r.file_size = $file_size,
+                        r.checksum = $checksum,
+                        r.file_path = $file_path,
+                        r.indexed_at = datetime()
+                    MERGE (u)-[:HAS_RESOURCE]->(r)
+                """, {
+                    'url': url,
+                    'resource_type': resource_type,
+                    'file_name': file_name,
+                    'file_size': file_size,
+                    'checksum': checksum,
+                    'file_path': file_path
+                })
+        except Exception as e:
+            print(f"Erreur Neo4j create_resource_node: {e}")
+    
+    def create_redirect(self, source_url: str, target_url: str):
+        """Crée une relation REDIRECTS_TO"""
+        if not self.driver:
+            return
+        
+        try:
+            with self.driver.session() as session:
+                session.run("""
+                    MERGE (source:URL {url: $source_url})
+                    MERGE (target:URL {url: $target_url})
+                    MERGE (source)-[r:REDIRECTS_TO]->(target)
+                    SET r.discovered_at = coalesce(r.discovered_at, datetime())
+                """, {
+                    'source_url': source_url,
+                    'target_url': target_url
+                })
+        except Exception as e:
+            print(f"Erreur Neo4j create_redirect: {e}")
+    
+    def get_stats(self) -> Dict[str, Any]:
+        """Retourne les statistiques depuis Neo4j"""
+        if not self.driver:
+            return {}
+        
+        try:
+            with self.driver.session() as session:
+                result = session.run("""
+                    RETURN 
+                        count{(:URL)} as total_urls,
+                        count{(:Page)} as total_pages,
+                        count{(:PDF)} as total_pdfs,
+                        count{(:Resource)} as total_resources,
+                        count{()-[:LINKS_TO]->()} as total_links
+                """)
+                record = result.single()
+                return {
+                    'total_urls': record['total_urls'],
+                    'total_pages': record['total_pages'],
+                    'total_pdfs': record['total_pdfs'],
+                    'total_resources': record['total_resources'],
+                    'total_links': record['total_links']
+                }
+        except Exception as e:
+            print(f"Erreur Neo4j get_stats: {e}")
+            return {}
+    
+    def close(self):
+        """Ferme la connexion à Neo4j"""
+        if self.driver:
+            self.driver.close()
+            print("✓ Connexion Neo4j fermée")
+
 # --- Utility Functions ---
 def sanitize_path_component(s: str) -> str:
     """Nettoie un composant de chemin pour le système de fichiers"""
@@ -364,6 +626,12 @@ class FHSWFSQLiteSpider(scrapy.Spider):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.db = DatabaseManager(DB_PATH)
+        
+        # Initialiser Neo4j si activé
+        self.neo4j = None
+        if NEO4J_ENABLED:
+            self.neo4j = Neo4jManager(NEO4J_URI, NEO4J_USER, NEO4J_PASSWORD)
+        
         self.crawled_count = 0
         self.pdf_count = 0
     
@@ -400,7 +668,7 @@ class FHSWFSQLiteSpider(scrapy.Spider):
         content_type = response.headers.get('Content-Type', b'').decode('utf-8', 'ignore')
         is_pdf = 'application/pdf' in content_type.lower() or url.lower().endswith('.pdf')
         
-        # Insérer/mettre à jour l'URL
+        # Insérer/mettre à jour l'URL dans SQLite
         url_id = self.db.insert_or_update_url(
             url=url,
             status_code=response.status,
@@ -411,6 +679,19 @@ class FHSWFSQLiteSpider(scrapy.Spider):
             checksum=checksum,
             file_path=file_path
         )
+        
+        # Insérer/mettre à jour l'URL dans Neo4j
+        if self.neo4j:
+            self.neo4j.create_url_node(
+                url=url,
+                status_code=response.status,
+                content_type=content_type,
+                content_length=len(response.body),
+                is_pdf=is_pdf,
+                is_internal=self._is_internal_and_allowed(url),
+                checksum=checksum,
+                file_path=file_path
+            )
         
         self.crawled_count += 1
         self.logger.info(f"[{self.crawled_count}] Crawled: {url} (ID: {url_id})")
@@ -425,7 +706,7 @@ class FHSWFSQLiteSpider(scrapy.Spider):
                     loc = str(loc)
                 target = response.urljoin(loc)
                 
-                # Enregistrer le lien de redirection
+                # Enregistrer le lien de redirection dans SQLite
                 self.db.insert_link(
                     source_url_id=url_id,
                     target_url=target,
@@ -433,6 +714,10 @@ class FHSWFSQLiteSpider(scrapy.Spider):
                     link_type="redirect",
                     is_internal=self._is_internal_and_allowed(target)
                 )
+                
+                # Enregistrer la redirection dans Neo4j
+                if self.neo4j:
+                    self.neo4j.create_redirect(source_url=url, target_url=target)
                 
                 if self._is_internal_and_allowed(target):
                     self.logger.info("Following redirect: %s -> %s", url, target)
@@ -443,6 +728,8 @@ class FHSWFSQLiteSpider(scrapy.Spider):
         if is_pdf:
             self.pdf_count += 1
             file_name = os.path.basename(urlparse(url).path) or f"document_{url_id}.pdf"
+            
+            # SQLite
             self.db.insert_pdf(
                 url_id=url_id,
                 file_name=file_name,
@@ -451,6 +738,17 @@ class FHSWFSQLiteSpider(scrapy.Spider):
                 checksum=checksum,
                 file_path=file_path
             )
+            
+            # Neo4j
+            if self.neo4j:
+                self.neo4j.create_pdf_node(
+                    url=url,
+                    file_name=file_name,
+                    file_size=len(response.body),
+                    checksum=checksum,
+                    file_path=file_path
+                )
+            
             self.logger.info(f"✓ Saved PDF: {file_name} ({len(response.body)} bytes) -> {file_path}")
             return
         
@@ -462,7 +760,7 @@ class FHSWFSQLiteSpider(scrapy.Spider):
             text_content = extract_text_content(response)
             headers_str = str(dict(response.headers))
             
-            # Sauvegarder le contenu de la page
+            # Sauvegarder le contenu de la page dans SQLite
             self.db.insert_page_content(
                 url_id=url_id,
                 html_content=response.body,
@@ -471,6 +769,15 @@ class FHSWFSQLiteSpider(scrapy.Spider):
                 meta_description=meta_desc.strip(),
                 headers=headers_str
             )
+            
+            # Sauvegarder le contenu de la page dans Neo4j
+            if self.neo4j:
+                self.neo4j.create_page_content(
+                    url=url,
+                    text_content=text_content,
+                    title=title.strip(),
+                    meta_description=meta_desc.strip()
+                )
             
             # Extraire et enregistrer tous les liens
             selectors = {
@@ -509,7 +816,7 @@ class FHSWFSQLiteSpider(scrapy.Spider):
                     if "/intern/" in abs_url:
                         continue
                     
-                    # Enregistrer le lien
+                    # Enregistrer le lien dans SQLite
                     is_internal = self._is_internal_and_allowed(abs_url)
                     self.db.insert_link(
                         source_url_id=url_id,
@@ -518,6 +825,16 @@ class FHSWFSQLiteSpider(scrapy.Spider):
                         link_type=link_type,
                         is_internal=is_internal
                     )
+                    
+                    # Enregistrer le lien dans Neo4j
+                    if self.neo4j:
+                        self.neo4j.create_link(
+                            source_url=url,
+                            target_url=abs_url,
+                            link_text=link_text.strip() if link_text else None,
+                            link_type=link_type,
+                            is_internal=is_internal
+                        )
                     
                     # Suivre les liens internes
                     if is_internal:
@@ -530,6 +847,7 @@ class FHSWFSQLiteSpider(scrapy.Spider):
             resource_type = content_type.split(';')[0].strip() if content_type else 'unknown'
             file_name = os.path.basename(urlparse(url).path) or f"resource_{url_id}"
             
+            # SQLite
             self.db.insert_resource(
                 url_id=url_id,
                 resource_type=resource_type,
@@ -539,6 +857,18 @@ class FHSWFSQLiteSpider(scrapy.Spider):
                 checksum=checksum,
                 file_path=file_path
             )
+            
+            # Neo4j
+            if self.neo4j:
+                self.neo4j.create_resource_node(
+                    url=url,
+                    resource_type=resource_type,
+                    file_name=file_name,
+                    file_size=len(response.body),
+                    checksum=checksum,
+                    file_path=file_path
+                )
+            
             self.logger.debug(f"✓ Saved resource: {file_name} -> {file_path}")
     
     def closed(self, reason):
@@ -548,29 +878,51 @@ class FHSWFSQLiteSpider(scrapy.Spider):
         self.logger.info("Crawl terminé!")
         self.logger.info(f"Raison: {reason}")
         self.logger.info("-" * 60)
-        self.logger.info(f"URLs totales:     {stats['total_urls']}")
-        self.logger.info(f"Pages HTML:       {stats['total_pages']}")
-        self.logger.info(f"Documents PDF:    {stats['total_pdfs']}")
-        self.logger.info(f"Liens totaux:     {stats['total_links']}")
-        self.logger.info(f"Ressources:       {stats['total_resources']}")
-        self.logger.info("-" * 60)
-        self.logger.info(f"Base de données: {DB_PATH}")
+        self.logger.info("SQLite Stats:")
+        self.logger.info(f"  URLs totales:     {stats['total_urls']}")
+        self.logger.info(f"  Pages HTML:       {stats['total_pages']}")
+        self.logger.info(f"  Documents PDF:    {stats['total_pdfs']}")
+        self.logger.info(f"  Liens totaux:     {stats['total_links']}")
+        self.logger.info(f"  Ressources:       {stats['total_resources']}")
+        self.logger.info(f"  Base de données: {DB_PATH}")
+        
+        # Stats Neo4j
+        if self.neo4j:
+            neo4j_stats = self.neo4j.get_stats()
+            if neo4j_stats:
+                self.logger.info("-" * 60)
+                self.logger.info("Neo4j Stats:")
+                self.logger.info(f"  URLs totales:     {neo4j_stats.get('total_urls', 0)}")
+                self.logger.info(f"  Pages HTML:       {neo4j_stats.get('total_pages', 0)}")
+                self.logger.info(f"  Documents PDF:    {neo4j_stats.get('total_pdfs', 0)}")
+                self.logger.info(f"  Liens totaux:     {neo4j_stats.get('total_links', 0)}")
+                self.logger.info(f"  Ressources:       {neo4j_stats.get('total_resources', 0)}")
+        
         self.logger.info("=" * 60)
         
         self.db.close()
+        if self.neo4j:
+            self.neo4j.close()
 
 # --- Runner ---
 def main():
     print("=" * 70)
-    print("FH-SWF Crawler avec indexation SQLite + Sauvegarde fichiers")
+    print("FH-SWF Crawler avec indexation SQLite + Neo4j + Sauvegarde fichiers")
     print("=" * 70)
     print(f"TARGET_PATH:  {TARGET_PATH}")
     print(f"STORAGE_PATH: {STORAGE_PATH}")
     print(f"DB_PATH:      {DB_PATH}")
     print(f"Exclusions:   {EXCLUDE_DOMAINS_LIST or 'Aucune'}")
+    print("-" * 70)
+    print(f"Neo4j:        {'✓ ACTIVÉ' if NEO4J_ENABLED else '✗ DÉSACTIVÉ'}")
+    if NEO4J_ENABLED:
+        print(f"Neo4j URI:    {NEO4J_URI}")
+        print(f"Neo4j User:   {NEO4J_USER}")
     print("=" * 70)
     print("📁 Tous les fichiers (HTML, PDF, images) seront sauvegardés dans STORAGE_PATH")
-    print("🗄️  Toutes les métadonnées et le contenu seront indexés dans la base de données")
+    print("🗄️  Toutes les métadonnées et le contenu seront indexés dans SQLite")
+    if NEO4J_ENABLED:
+        print("🕸️  Les relations entre pages seront également sauvegardées dans Neo4j")
     print("=" * 70)
     print("Démarrage du crawl...")
     print()

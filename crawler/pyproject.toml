@@ -7,4 +7,6 @@ requires-python = ">=3.13"
 dependencies = [
     "dotenv>=0.9.9",
     "scrapy>=2.13.3",
+    "neo4j>=5.14.0",
+    "docling>=2.55.1",
 ]

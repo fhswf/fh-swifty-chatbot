@@ -5,21 +5,22 @@
 Ce répertoire contient deux crawlers pour le site web fh-swf.de:
 
 1. **crawl_fhswf.py** - Crawler de fichiers (sauvegarde sur disque)
-2. **crawl_to_sqlite.py** - Crawler avec indexation SQLite (**NOUVEAU**)
+2. **crawl_to_sqlite.py** - Crawler avec indexation SQLite + Neo4j (**NOUVEAU**)
 3. **query_db.py** - Utilitaire pour explorer la base de données SQLite
 
-## 🆕 Crawler SQLite (Recommandé)
+## 🆕 Crawler SQLite + Neo4j (Recommandé)
 
-Le nouveau crawler SQLite indexe tout le contenu du site dans une base de données structurée, permettant des recherches rapides et des analyses complexes.
+Le nouveau crawler indexe tout le contenu du site dans SQLite pour les données structurées et optionnellement dans Neo4j pour la visualisation des relations entre pages.
 
 ### Caractéristiques
 
-- ✅ **Sauvegarde double**: Fichiers sur disque ET dans la base de données
+- ✅ **Sauvegarde triple**: Fichiers sur disque + SQLite + Neo4j (optionnel)
 - ✅ Indexation de toutes les URLs et leur contenu
 - ✅ Stockage des documents PDF (fichier + base de données)
 - ✅ Sauvegarde de toutes les pages HTML sur disque
 - ✅ Sauvegarde de toutes les images et ressources sur disque
 - ✅ Extraction et indexation de tous les liens (internes et externes)
+- ✅ **Neo4j**: Visualisation des relations entre pages sous forme de graphe
 - ✅ Recherche en texte intégral dans le contenu
 - ✅ Métadonnées complètes (titres, descriptions, checksums, chemins de fichiers)
 - ✅ Cache HTTP pour éviter de re-télécharger les contenus inchangés
@@ -31,13 +32,29 @@ Le nouveau crawler SQLite indexe tout le contenu du site dans une base de donné
 #### Prérequis
 
 - Python 3.11+
-- Dépendances: `scrapy`, `python-dotenv`
+- Dépendances: `scrapy`, `python-dotenv`, `neo4j` (optionnel)
+- Neo4j Server (optionnel, pour la visualisation des graphes)
 
 ```bash
-pip install scrapy python-dotenv
+pip install scrapy python-dotenv neo4j
 # Ou avec uv
-uv pip install scrapy python-dotenv
+uv pip install scrapy python-dotenv neo4j
 ```
+
+#### Installation de Neo4j (Optionnel)
+
+**Option 1: Docker (Recommandé)**
+```bash
+docker run -d \
+  --name neo4j \
+  -p 7474:7474 -p 7687:7687 \
+  -e NEO4J_AUTH=neo4j/your_password \
+  -v $HOME/neo4j/data:/data \
+  neo4j:latest
+```
+
+**Option 2: Neo4j Desktop**
+Téléchargez depuis https://neo4j.com/download/
 
 ### Configuration
 
@@ -55,12 +72,26 @@ DB_PATH=./downloaded/crawl_index.db
 
 # Domaines à exclure du crawl (séparés par des virgules, supporte les wildcards)
 EXCLUDE_DOMAINS=www7.fh-swf.de,static.bad.example
+
+# === Configuration Neo4j (Optionnel) ===
+# Activer Neo4j (true/false, 1/0, yes/no)
+NEO4J_ENABLED=true
+
+# URI de connexion Neo4j
+NEO4J_URI=bolt://localhost:7687
+
+# Identifiants Neo4j
+NEO4J_USER=neo4j
+NEO4J_PASSWORD=your_password
 ```
 
 **Explication des chemins:**
 - `TARGET_PATH`: Répertoire racine pour tous les fichiers du crawler
 - `STORAGE_PATH`: Où sauvegarder physiquement les fichiers HTML, PDF, images (préserve la structure des URLs)
 - `DB_PATH`: Où sauvegarder la base de données SQLite avec l'index et les métadonnées
+- `NEO4J_ENABLED`: Active/désactive la sauvegarde dans Neo4j
+- `NEO4J_URI`: Adresse du serveur Neo4j (bolt:// pour connexion directe)
+- `NEO4J_USER` / `NEO4J_PASSWORD`: Identifiants de connexion Neo4j
 
 ### Utilisation
 
@@ -73,11 +104,13 @@ python crawl_to_sqlite.py
 
 Le crawler va:
 1. Créer/ouvrir la base de données SQLite
-2. Créer la structure de répertoires dans STORAGE_PATH
-3. Crawler tout le site fh-swf.de
-4. Sauvegarder chaque fichier sur disque (STORAGE_PATH)
-5. Indexer tous les contenus, liens et PDFs dans la base de données
-6. Afficher les statistiques à la fin
+2. Se connecter à Neo4j (si activé)
+3. Créer la structure de répertoires dans STORAGE_PATH
+4. Crawler tout le site fh-swf.de
+5. Sauvegarder chaque fichier sur disque (STORAGE_PATH)
+6. Indexer tous les contenus, liens et PDFs dans SQLite
+7. Sauvegarder les relations dans Neo4j (si activé)
+8. Afficher les statistiques à la fin (SQLite + Neo4j)
 
 **Système de sauvegarde double:**
 - **Fichiers sur disque** (`STORAGE_PATH/`): Tous les fichiers sont sauvegardés physiquement
@@ -214,7 +247,106 @@ FROM urls
 WHERE url = 'https://www.fh-swf.de/example.html';
 ```
 
-### Avantages du crawler SQLite
+### Utilisation de Neo4j (Optionnel)
+
+Si vous avez activé Neo4j (`NEO4J_ENABLED=true`), les données sont également sauvegardées dans une base de données graphe pour une visualisation et une analyse des relations.
+
+#### Structure du graphe Neo4j
+
+**Nœuds:**
+- `URL`: Représente toutes les URLs crawlées
+  - Propriétés: url, domain, path, status_code, content_type, is_pdf, checksum, etc.
+- `Page`: Contenu des pages HTML
+  - Propriétés: title, meta_description, text_content
+- `PDF`: Documents PDF
+  - Propriétés: file_name, file_size, checksum, file_path
+- `Resource`: Images, CSS, JS
+  - Propriétés: resource_type, file_name, file_size
+
+**Relations:**
+- `LINKS_TO`: Lien d'une URL vers une autre
+  - Propriétés: link_text, link_type (a, img, script), is_internal
+- `REDIRECTS_TO`: Redirection HTTP
+- `HAS_CONTENT`: URL → Page
+- `HAS_PDF`: URL → PDF
+- `HAS_RESOURCE`: URL → Resource
+
+#### Accès à Neo4j Browser
+
+Ouvrez votre navigateur à: http://localhost:7474
+
+**Identifiants par défaut:**
+- Username: `neo4j`
+- Password: celui que vous avez configuré
+
+#### Exemples de requêtes Cypher
+
+```cypher
+// Voir toutes les URLs crawlées (limité à 100)
+MATCH (u:URL)
+RETURN u
+LIMIT 100;
+
+// Trouver toutes les pages qui linkent vers une URL spécifique
+MATCH (source:URL)-[r:LINKS_TO]->(target:URL {url: 'https://www.fh-swf.de/'})
+RETURN source.url, r.link_text, r.link_type;
+
+// Visualiser le graphe de navigation autour de la page d'accueil
+MATCH path = (u:URL {url: 'https://www.fh-swf.de/'})-[:LINKS_TO*1..2]-(related:URL)
+RETURN path
+LIMIT 50;
+
+// Trouver les pages les plus liées (PageRank simple)
+MATCH (u:URL)<-[:LINKS_TO]-(source)
+RETURN u.url, u.domain, count(source) as incoming_links
+ORDER BY incoming_links DESC
+LIMIT 20;
+
+// Trouver tous les PDFs et leurs tailles
+MATCH (u:URL)-[:HAS_PDF]->(pdf:PDF)
+RETURN u.url, pdf.file_name, pdf.file_size, pdf.file_path
+ORDER BY pdf.file_size DESC;
+
+// Rechercher des pages par titre
+MATCH (u:URL)-[:HAS_CONTENT]->(p:Page)
+WHERE p.title CONTAINS 'Informatik'
+RETURN u.url, p.title;
+
+// Analyser les redirections
+MATCH path = (source:URL)-[:REDIRECTS_TO*]->(target:URL)
+RETURN path;
+
+// Trouver les pages orphelines (aucun lien entrant interne)
+MATCH (u:URL)
+WHERE NOT exists((u)<-[:LINKS_TO]-(:URL))
+  AND u.is_internal = true
+RETURN u.url, u.title
+LIMIT 20;
+
+// Statistiques par domaine
+MATCH (u:URL)
+RETURN u.domain, 
+       count(*) as total_urls,
+       sum(CASE WHEN u.is_pdf THEN 1 ELSE 0 END) as pdf_count
+ORDER BY total_urls DESC;
+
+// Trouver le chemin le plus court entre deux pages
+MATCH path = shortestPath(
+  (start:URL {url: 'https://www.fh-swf.de/'})-[:LINKS_TO*]->
+  (end:URL {url: 'https://www.fh-swf.de/de/studieren/studiengaenge'})
+)
+RETURN path;
+```
+
+#### Avantages de Neo4j
+
+✅ **Visualisation graphique**: Voir les relations entre pages  
+✅ **Requêtes de graphe**: Trouver des chemins, des communautés  
+✅ **PageRank**: Identifier les pages importantes  
+✅ **Détection de liens brisés**: Pages sans liens entrants  
+✅ **Analyse de la navigation**: Comment les utilisateurs pourraient naviguer  
+
+### Avantages du crawler SQLite + Neo4j
 
 ✅ **Recherche rapide**: Index sur les colonnes importantes  
 ✅ **Analyse de données**: Requêtes SQL complexes possibles  
