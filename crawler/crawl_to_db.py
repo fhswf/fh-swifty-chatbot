@@ -20,11 +20,13 @@ from scrapy.crawler import CrawlerProcess
 from scrapy.http import TextResponse, Response
 from neo4j import GraphDatabase
 
-from docling.document_converter import DocumentConverter
+from html_to_markdown import convert_to_markdown
+from pathlib import Path
+import pymupdf4llm
 
 # --- Configuration ---
 load_dotenv()
-TARGET_PATH = os.getenv("TARGET_PATH", "").strip() or "./downloaded_v2"
+TARGET_PATH = os.getenv("TARGET_PATH", "").strip() or "./downloaded_v3"
 TARGET_PATH = os.path.abspath(TARGET_PATH)
 
 DB_PATH = os.getenv("DB_PATH", os.path.join(TARGET_PATH, "crawl_index.db"))
@@ -598,6 +600,14 @@ def is_blacklisted_host(hostname: str, blacklist: list) -> bool:
             return True
     return False
 
+def html_to_markdown(file_path: str) -> str:
+    try:
+        content = Path(file_path).read_text()
+        markdown_content = convert_to_markdown(content, preprocess_html=True, preprocessing_preset='aggressive')
+    except Exception as e:
+        markdown_content = f"Error converting HTML to markdown: {e}"
+    return markdown_content
+
 # --- Spider ---
 class FHSWFSQLiteSpider(scrapy.Spider):
     name = "fhswf_sqlite"
@@ -635,9 +645,6 @@ class FHSWFSQLiteSpider(scrapy.Spider):
         self.neo4j = None
         if NEO4J_ENABLED:
             self.neo4j = Neo4jManager(NEO4J_URI, NEO4J_USER, NEO4J_PASSWORD)
-        
-        self.converter = DocumentConverter()
-        self.converter.format_to_options['pdf'].pipeline_options.do_ocr = False
         
         self.crawled_count = 0
         self.pdf_count = 0
@@ -737,8 +744,11 @@ class FHSWFSQLiteSpider(scrapy.Spider):
             self.pdf_count += 1
             file_name = os.path.basename(urlparse(url).path) or f"document_{url_id}.pdf"
 
-            result = self.converter.convert(file_path)
-            markdown_content = result.document.export_to_markdown()
+            try:
+                markdown_content = pymupdf4llm.to_markdown(file_path)
+            except Exception as e:
+                markdown_content = f"Error converting PDF to markdown: {e}"
+                self.logger.error(f"Error converting PDF to markdown: {e}")
 
             # SQLite
             self.db.insert_pdf(
@@ -773,9 +783,7 @@ class FHSWFSQLiteSpider(scrapy.Spider):
             headers_str = str(dict(response.headers))
 
             print("=" * 70)
-
-            result = self.converter.convert(file_path)
-            markdown_content = result.document.export_to_markdown()
+            markdown_content = html_to_markdown(file_path)
             
             # Sauvegarder le contenu de la page dans SQLite
             self.db.insert_page_content(

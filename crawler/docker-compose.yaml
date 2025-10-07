@@ -8,5 +8,16 @@ services:
     environment:
       - NEO4J_AUTH=neo4j/password123
     volumes:
-      - ./neo4j_data:/data
+      - ./downloaded_v3/neo4j_data:/data
+    restart: unless-stopped
+  neo4j-dev:
+    image: neo4j:5.26-community
+    container_name: fh-swifty-neo4j-dev
+    ports:
+      - "7475:7474"  # HTTP
+      - "7688:7687"  # Bolt
+    environment:
+      - NEO4J_AUTH=neo4j/password123
+    volumes:
+      - ./downloaded_v2/neo4j_data:/data
     restart: unless-stopped
