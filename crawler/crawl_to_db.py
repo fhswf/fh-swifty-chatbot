@@ -21,7 +21,6 @@ from scrapy.http import TextResponse, Response
 from neo4j import GraphDatabase
 
 from html_to_markdown import convert_to_markdown
-from pathlib import Path
 import pymupdf4llm
 
 # --- Configuration ---
