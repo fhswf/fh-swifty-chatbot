@@ -7,23 +7,26 @@ Script pour créer des nœuds Content à partir du contenu markdown des nœuds P
 """
 
 import os
-import re
-from typing import List, Dict, Any, Optional
-from datetime import datetime
+from typing import List, Dict, Any
 
 from dotenv import load_dotenv
 from neo4j import GraphDatabase
+
+# LangChain imports
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain.schema import Document
 
 # --- Configuration ---
 load_dotenv()
 
 # Neo4j Configuration
-NEO4J_URI = os.getenv("NEO4J_URI", "bolt://localhost:7687")
+NEO4J_URI = os.getenv("NEO4J_URI", "bolt://localhost:7688")
 NEO4J_USER = os.getenv("NEO4J_USER", "neo4j")
 NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD", "password123")
 
 # Configuration du chunking
 MAX_CHUNK_SIZE = 2000
+CHUNK_OVERLAP = 200  # Chevauchement entre chunks pour préserver le contexte
 MIN_CONTENT_SIZE = 3000  # Seuil minimum pour diviser en chunks
 
 class ContentChunker:
@@ -35,6 +38,7 @@ class ContentChunker:
             self.driver = GraphDatabase.driver(uri, auth=(user, password))
             self.driver.verify_connectivity()
             self.init_constraints()
+            self.init_text_splitters()
             print(f"✓ Connexion à Neo4j établie: {uri}")
         except Exception as e:
             print(f"⚠️  Erreur de connexion à Neo4j: {e}")
@@ -71,57 +75,30 @@ class ContentChunker:
                 except Exception:
                     pass
     
-    def split_content_into_chunks(self, content: str, max_size: int = MAX_CHUNK_SIZE) -> List[str]:
+    def init_text_splitters(self):
+        """Initialise les splitters LangChain"""
+        # Splitter général pour le texte
+        self.recursive_splitter = RecursiveCharacterTextSplitter(
+            chunk_size=MAX_CHUNK_SIZE,
+            chunk_overlap=CHUNK_OVERLAP
+        )
+    
+    def split_content_into_chunks(self, content: str) -> List[Document]:
         """
-        Divise le contenu en chunks de taille maximale spécifiée.
-        Essaie de couper aux limites de phrases/paragraphes.
+        Divise le contenu en chunks en utilisant LangChain.
         """
         if not content or len(content.strip()) < MIN_CONTENT_SIZE:
-            return [content] if content and content.strip() else []
+            return [Document(page_content=content)] if content and content.strip() else []
         
         content = content.strip()
-        chunks = []
         
-        # Diviser par paragraphes d'abord
-        paragraphs = content.split('\n\n')
-        current_chunk = ""
-        
-        for paragraph in paragraphs:
-            paragraph = paragraph.strip()
-            if not paragraph:
-                continue
-            
-            # Si le paragraphe seul dépasse la taille max, le diviser par phrases
-            if len(paragraph) > max_size:
-                sentences = re.split(r'(?<=[.!?])\s+', paragraph)
-                for sentence in sentences:
-                    sentence = sentence.strip()
-                    if not sentence:
-                        continue
-                    
-                    if len(current_chunk) + len(sentence) + 2 <= max_size:
-                        current_chunk += ("\n" if current_chunk else "") + sentence
-                    else:
-                        if current_chunk:
-                            chunks.append(current_chunk.strip())
-                        current_chunk = sentence
-            else:
-                # Vérifier si on peut ajouter ce paragraphe au chunk actuel
-                if len(current_chunk) + len(paragraph) + 2 <= max_size:
-                    current_chunk += ("\n\n" if current_chunk else "") + paragraph
-                else:
-                    if current_chunk:
-                        chunks.append(current_chunk.strip())
-                    current_chunk = paragraph
-        
-        # Ajouter le dernier chunk s'il n'est pas vide
-        if current_chunk:
-            chunks.append(current_chunk.strip())
-        
-        return [chunk for chunk in chunks if chunk]
+        try:
+            return self.recursive_splitter.split_documents([Document(page_content=content)])    
+        except Exception:
+            return [Document(page_content=content)]
     
     def create_content_chunks(self, source_url: str, content: str, content_type: str, 
-                            source_title: str = "", source_meta: str = "") -> int:
+                            last_seen: str, source_title: str = "", source_meta: str = "") -> int:
         """
         Crée des nœuds Content à partir du contenu markdown.
         Retourne le nombre de chunks créés.
@@ -129,12 +106,9 @@ class ContentChunker:
         if not self.driver:
             return 0
         
-        chunks = self.split_content_into_chunks(content)
-        if not chunks:
-            print(f"⚠️  Aucun chunk créé pour {source_url}")
-            return 0
+        chunk_docs = self.split_content_into_chunks(content)
         
-        print(f"📄 Création de {len(chunks)} chunks pour {source_url} ({content_type})")
+        print(f"📄 Création de {len(chunk_docs)} chunks pour {source_url} ({content_type})")
         
         try:
             with self.driver.session() as session:
@@ -145,8 +119,10 @@ class ContentChunker:
                 """, source_url=source_url)
                 
                 # Créer les nouveaux chunks
-                for i, chunk in enumerate(chunks):
+                for i, doc in enumerate(chunk_docs):
                     chunk_id = f"{source_url}#chunk_{i+1}"
+                    chunk_content = doc.page_content
+                    chunk_metadata = doc.metadata if hasattr(doc, 'metadata') else {}
                     
                     session.run("""
                         CREATE (c:Content {
@@ -157,21 +133,23 @@ class ContentChunker:
                             chunk_order: $chunk_order,
                             chunk_size: $chunk_size,
                             total_chunks: $total_chunks,
+                            last_seen: $last_seen,
                             source_title: $source_title,
                             source_meta: $source_meta,
-                            created_at: datetime(),
-                            updated_at: datetime()
+                            chunk_metadata: $chunk_metadata,
                         })
                     """, {
                         'chunk_id': chunk_id,
                         'source_url': source_url,
                         'content_type': content_type,
-                        'chunk_content': chunk,
+                        'chunk_content': chunk_content,
                         'chunk_order': i + 1,
-                        'chunk_size': len(chunk),
-                        'total_chunks': len(chunks),
+                        'chunk_size': len(chunk_content),
+                        'total_chunks': len(chunk_docs),
+                        'last_seen': last_seen,
                         'source_title': source_title,
-                        'source_meta': source_meta
+                        'source_meta': source_meta,
+                        'chunk_metadata': str(chunk_metadata)
                     })
                 
                 # Créer les relations avec les nœuds sources
@@ -188,7 +166,7 @@ class ContentChunker:
                         MERGE (page)-[:HAS_CONTENT]->(c)
                     """, source_url=source_url)
                 
-                return len(chunks)
+                return len(chunk_docs)
                 
         except Exception as e:
             print(f"❌ Erreur lors de la création des chunks pour {source_url}: {e}")
@@ -211,7 +189,8 @@ class ContentChunker:
                     RETURN pdf.url as url, 
                            pdf.markdown_content as content,
                            pdf.file_name as title,
-                           pdf.file_size as meta
+                           pdf.file_size as meta,
+                           pdf.indexed_at as last_seen
                 """)
                 
                 for record in result:
@@ -219,6 +198,7 @@ class ContentChunker:
                     content = record["content"]
                     title = record["title"] or ""
                     meta = f"File size: {record['meta']} bytes" if record["meta"] else ""
+                    last_seen = record["last_seen"]
                     
                     try:
                         chunks_created = self.create_content_chunks(
@@ -226,7 +206,8 @@ class ContentChunker:
                             content=content,
                             content_type="pdf",
                             source_title=title,
-                            source_meta=meta
+                            source_meta=meta,
+                            last_seen=last_seen
                         )
                         stats["chunks_created"] += chunks_created
                         stats["processed"] += 1
@@ -260,6 +241,7 @@ class ContentChunker:
                     AND page.markdown_content <> ""
                     RETURN page.url as url, 
                            page.markdown_content as content,
+                           page.updated_at as last_seen,
                            page.title as title,
                            page.meta_description as meta
                 """)
@@ -269,12 +251,14 @@ class ContentChunker:
                     content = record["content"]
                     title = record["title"] or ""
                     meta = record["meta"] or ""
+                    last_seen = record["last_seen"]
                     
                     try:
                         chunks_created = self.create_content_chunks(
                             source_url=url,
                             content=content,
                             content_type="webpage",
+                            last_seen=last_seen,
                             source_title=title,
                             source_meta=meta
                         )
@@ -339,6 +323,7 @@ def main():
     print(f"Neo4j URI:     {NEO4J_URI}")
     print(f"Neo4j User:    {NEO4J_USER}")
     print(f"Max chunk size: {MAX_CHUNK_SIZE} caractères")
+    print(f"Chunk overlap: {CHUNK_OVERLAP} caractères")
     print(f"Min content size: {MIN_CONTENT_SIZE} caractères")
     print("=" * 70)
     
