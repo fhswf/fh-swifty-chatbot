@@ -25,9 +25,9 @@ NEO4J_USER = os.getenv("NEO4J_USER", "neo4j")
 NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD", "password123")
 
 # Configuration du chunking
-MAX_CHUNK_SIZE = 2000
-CHUNK_OVERLAP = 200  # Chevauchement entre chunks pour préserver le contexte
-MIN_CONTENT_SIZE = 3000  # Seuil minimum pour diviser en chunks
+MAX_CHUNK_SIZE = 5000
+CHUNK_OVERLAP = 500  # Chevauchement entre chunks pour préserver le contexte
+MIN_CONTENT_SIZE = 8000  # Seuil minimum pour diviser en chunks
 
 class ContentChunker:
     """Gestionnaire pour créer des chunks de contenu à partir des nœuds PDF et Page"""
@@ -136,7 +136,7 @@ class ContentChunker:
                             last_seen: $last_seen,
                             source_title: $source_title,
                             source_meta: $source_meta,
-                            chunk_metadata: $chunk_metadata,
+                            chunk_metadata: $chunk_metadata
                         })
                     """, {
                         'chunk_id': chunk_id,
@@ -286,14 +286,15 @@ class ContentChunker:
         try:
             with self.driver.session() as session:
                 result = session.run("""
+                    MATCH (c:Content)
                     RETURN 
-                        count{(:Content)} as total_chunks,
-                        count{DISTINCT (:Content).source_url} as total_sources,
-                        count{(:Content) WHERE content_type = 'pdf'} as pdf_chunks,
-                        count{(:Content) WHERE content_type = 'webpage'} as webpage_chunks,
-                        avg{(:Content).chunk_size} as avg_chunk_size,
-                        max{(:Content).chunk_size} as max_chunk_size,
-                        min{(:Content).chunk_size} as min_chunk_size
+                        count(c) as total_chunks,
+                        count(DISTINCT c.source_url) as total_sources,
+                        count(CASE WHEN c.content_type = 'pdf' THEN 1 END) as pdf_chunks,
+                        count(CASE WHEN c.content_type = 'webpage' THEN 1 END) as webpage_chunks,
+                        avg(c.chunk_size) as avg_chunk_size,
+                        max(c.chunk_size) as max_chunk_size,
+                        min(c.chunk_size) as min_chunk_size
                 """)
                 record = result.single()
                 return {
