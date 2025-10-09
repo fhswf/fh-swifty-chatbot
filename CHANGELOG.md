@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.4.0 (2025-10-09)
+
+### Features
+
+- Add Jupyter notebook for OpenAI API blacklist checking functionality
+  ([`e97baa6`](https://github.com/fhswf/fh-swifty-chatbot/commit/e97baa66549a6e639a3c9f60a0a764af939de984))
+
+
 ## v0.3.0 (2025-10-09)
 
 ### Chores
