@@ -1,6 +1,19 @@
 # CHANGELOG
 
 
+## v0.3.0 (2025-10-09)
+
+### Chores
+
+- Update README to reflect Python version requirement change from 3.7+ to 3.11+
+  ([`d6e27f4`](https://github.com/fhswf/fh-swifty-chatbot/commit/d6e27f4b2c2641c56d2fc9eba75f080285a1d9de))
+
+### Features
+
+- Add PostgreSQL, Neo4j, Qdrant, and MinIO services to docker-compose
+  ([`283c8dc`](https://github.com/fhswf/fh-swifty-chatbot/commit/283c8dc50d229b117a36ab871f866fc8005b232b))
+
+
 ## v0.2.0 (2025-09-28)
 
 ### Chores
@@ -16,6 +29,9 @@
 
 - Update readme for version 0.1.5, add last update date, and enhance technology stack details
   ([`1530637`](https://github.com/fhswf/fh-swifty-chatbot/commit/153063735d08a887358d656796e57065cc3d4a12))
+
+- Update readme to include UV commands for environment setup and application execution
+  ([`12077ab`](https://github.com/fhswf/fh-swifty-chatbot/commit/12077ab25a8cb9b4317a1460709c7c04a6de4929))
 
 ### Features
 
