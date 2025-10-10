@@ -1,6 +1,20 @@
 # CHANGELOG
 
 
+## v0.5.0 (2025-10-10)
+
+### Chores
+
+- Update README to include new notebook and environment variable requirements, and enhance project
+  structure with additional modules
+  ([`a3d1e64`](https://github.com/fhswf/fh-swifty-chatbot/commit/a3d1e644716d31c5ddcb0dcd4052303f8db37be1))
+
+### Features
+
+- Enhance OpenAI API notebook with improved configuration validation and result analysis
+  ([`6fdecc9`](https://github.com/fhswf/fh-swifty-chatbot/commit/6fdecc900edbe61d6a642b210fc1ac95fbbae775))
+
+
 ## v0.4.0 (2025-10-09)
 
 ### Features
