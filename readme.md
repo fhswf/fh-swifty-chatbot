@@ -41,15 +41,23 @@ FH-SWiFty-Chatbot/
 │   ├── kustomization.yaml              # Kustomize-Konfiguration
 │   ├── secrets.yaml                     # K8s-Secrets
 │   └── service.yaml                     # K8s-Service
-└── fh-swifty-chatbot/                   # Haupt-Chatbot-Modul
-    ├── agent_langgraph_app.py          # Haupt-Chatbot-Anwendung
-    ├── main.py                         # Modul-Eingangspunkt
-    ├── helpers/                         # Hilfsfunktionen
-    │   ├── prompts.py                  # Prompt-Templates
-    │   └── tools.py                    # Web-Such-Tools
-    └── notebook/                        # Jupyter Notebooks
-        └── web_crawler/
-            └── urlLoader.ipynb         # Web-Crawler-Notebook
+├── fh-swifty-chatbot/                   # Haupt-Chatbot-Modul
+│   ├── agent_langgraph_app.py          # Haupt-Chatbot-Anwendung
+│   ├── main.py                         # Modul-Eingangspunkt
+│   ├── helpers/                         # Hilfsfunktionen
+│   │   ├── prompts.py                  # Prompt-Templates
+│   │   └── tools.py                    # Web-Such-Tools
+│   └── notebook/                        # Jupyter Notebooks
+│       └── web_crawler/
+│           └── urlLoader.ipynb         # Web-Crawler-Notebook
+            └── check_blacklist_openai_v1.ipynb   # Checkblacklist
+├── notebook/                            # Entwicklungs-Notebooks
+├── crawler/                             # Web-Crawler-Modul
+│   ├── crawl_fhswf.py                  # FH SWF Web-Crawler
+│   ├── pyproject.toml                  # Crawler-Konfiguration
+│   └── README.md                       # Crawler-Dokumentation
+└── data/                                # Datenverzeichnis
+    └── blacklist/                       # Blacklist-Daten
 ```
 
 ## Installation
@@ -105,6 +113,10 @@ Nach dem Start ist der Chatbot über den Browser unter `http://localhost:8000` e
 Der Chatbot benötigt folgende Umgebungsvariablen:
 - `OPENAI_API_KEY`: API-Schlüssel für OpenAI
 - `TAVILY_API_KEY`: API-Schlüssel für Tavily Search
+- `OPENAI_BASE_URL`: (Optional) Benutzerdefinierte OpenAI-URL
+- `HTTPS_PROXY`: (Optional) Proxy-Konfiguration
+
+**Sicherheitshinweis**: Alle API-Schlüssel und Proxy-Konfigurationen sollten in einer `.env`-Datei gespeichert werden, die **nicht** ins Repository committed wird.
 
 ## Aktuelle Funktionen
 - ✅ Intelligente Gesprächsführung mit GPT-4
@@ -116,6 +128,7 @@ Der Chatbot benötigt folgende Umgebungsvariablen:
 - ✅ Automatische Informationsbeschaffung
 - ✅ Jupyter Notebook-Integration
 - ✅ Automatische Versionierung mit Semantic Release
+- ✅ Intelligente Inhaltsmoderation (Blacklist-System)
 
 ## Entwicklung
 Das Projekt verwendet die Python-Packaging-Struktur mit `pyproject.toml` und moderne LLM-Frameworks für eine skalierbare Chatbot-Architektur.
