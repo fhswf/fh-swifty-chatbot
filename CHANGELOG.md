@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.7.0 (2025-10-23)
+
+### Features
+
+- Update user message autoscroll setting and rename assistant in UI
+  ([`293ee6b`](https://github.com/fhswf/fh-swifty-chatbot/commit/293ee6bdb84d38397235937b3cfb194ba950ac7f))
+
+
 ## v0.6.0 (2025-10-23)
 
 ### Features
