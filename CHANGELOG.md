@@ -1,6 +1,19 @@
 # CHANGELOG
 
 
+## v0.6.0 (2025-10-23)
+
+### Features
+
+- Implement feedback and fallback mechanisms, including user feedback storage and mock replies
+  during service outages
+  ([`6f9cc5a`](https://github.com/fhswf/fh-swifty-chatbot/commit/6f9cc5a0cf76bec0ef29b7241ef1845a894f644c))
+
+- Update feedback handling and fallback responses, including user input storage and improved mock
+  replies
+  ([`52fc0e0`](https://github.com/fhswf/fh-swifty-chatbot/commit/52fc0e05d8a384cd7773bf63eaeb537d7f1c3349))
+
+
 ## v0.5.0 (2025-10-10)
 
 ### Chores
