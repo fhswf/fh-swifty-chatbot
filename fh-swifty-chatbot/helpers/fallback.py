@@ -9,11 +9,11 @@ def build_mock_reply(user_text: str) -> str:
     prompt_hint = f"„{user_text[:120]}“" if user_text else "deine Frage"
     body = f"""
     Leider ist der KI-Dienst gerade nicht erreichbar. Ich gebe dir trotzdem eine kurze,
-    vorläufige Antwort basierend auf {prompt_hint}:
+    Antwort auf {prompt_hint}:
 
     • Ich habe deine Anfrage registriert und würde normalerweise die FH-Südwestfalen-Quellen prüfen.
     • Typische nächste Schritte wären: passende Studiengangsseite finden, Fristen & Kontaktinfos extrahieren.
-    • Tipp: Falls du etwas Konkretes suchst (Studiengang, Standort, Frist), schreib es gern präziser.
+    • Tipp: Falls du etwas Konkretes suchst (Studiengang, Standort, Frist), schau gerne auf der Homepage der FH nach (https://www.fh-swf.de/de/).
 
     Sobald der Dienst wieder läuft, kann ich dir eine ausführliche, verifizierte Antwort liefern.
     """

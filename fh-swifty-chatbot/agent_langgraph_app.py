@@ -3,8 +3,8 @@ from typing import Optional, List, cast
 
 from langchain_openai import ChatOpenAI
 from langchain.schema.runnable import Runnable, RunnableConfig
-from langchain_core.messages import HumanMessage
 from langgraph.prebuilt import create_react_agent
+from langchain_core.messages import HumanMessage
 
 from helpers.tools import find_info_on_fhswf_website
 from helpers.prompts import prompt_langgraph
@@ -71,6 +71,7 @@ async def main(message: cl.Message):
         if msg_uis:
             last = msg_uis[-1]
             assistant_text = "".join(last_assistant_text_parts).strip()
+            # >>> Hier: user_input in payload aufnehmen
             last.actions = [
                 cl.Action(
                     name="fb_up",
@@ -79,6 +80,7 @@ async def main(message: cl.Message):
                     payload={
                         "assistant_message_id": last.id,
                         "assistant_text": assistant_text,
+                        "user_input": message.content or "",
                     },
                 ),
                 cl.Action(
@@ -88,6 +90,7 @@ async def main(message: cl.Message):
                     payload={
                         "assistant_message_id": last.id,
                         "assistant_text": assistant_text,
+                        "user_input": message.content or "",
                     },
                 ),
             ]
@@ -97,14 +100,14 @@ async def main(message: cl.Message):
     except (RateLimitError, AuthenticationError, BadRequestError, OpenAIError, Exception):
         # Hinweis (optional)
         await cl.Message(
-            content="⚠️ Der KI-Dienst ist gerade nicht erreichbar – ich liefere dir eine vorläufige Antwort:"
+            content="Der KI-Dienst ist gerade nicht erreichbar"
         ).send()
 
         # Simulierte Antwort aufbauen & streamen
         mock_text = build_mock_reply(message.content or "")
         last = await stream_mock_reply(mock_text)
-
-        # Feedback-Buttons auch an die simulierte Antwort
+        
+        """ # Feedback-Buttons auch an die simulierte Antwort
         if last:
             last.actions = [
                 cl.Action(
@@ -114,6 +117,7 @@ async def main(message: cl.Message):
                     payload={
                         "assistant_message_id": last.id,
                         "assistant_text": mock_text,
+                        "user_question": message.content or "",
                     },
                 ),
                 cl.Action(
@@ -123,10 +127,11 @@ async def main(message: cl.Message):
                     payload={
                         "assistant_message_id": last.id,
                         "assistant_text": mock_text,
+                        "user_question": message.content or "",
                     },
                 ),
             ]
-            await last.update()
+            await last.update() """
 
 
 # ======= Feedback-Callbacks (anonym, nur Session/Thread-ID) =======
@@ -138,15 +143,15 @@ async def on_feedback_up(action: cl.Action):
         kind="up",
         assistant_message_id=payload.get("assistant_message_id"),
         assistant_text=payload.get("assistant_text") or "",
-        user_expected=None,
-        user_id=None,  # bewusst anonym
-        thread_id=None,
-        extra={"source": "ui_button"},
+        extra={
+            # optional mitgeben, falls du es auch beim Upvote speichern willst:
+            "user_question": payload.get("user_input") or "",
+        },
     )
 
-    # Optional: Buttons nach Klick ausblenden
+    # Optional: Buttons nach Klick ausblenden (in manchen Chainlit-Versionen existiert action.parent nicht)
     try:
-        if action.parent:
+        if getattr(action, "parent", None):
             action.parent.actions = []
             await action.parent.update()
     except Exception:
@@ -154,36 +159,55 @@ async def on_feedback_up(action: cl.Action):
 
     await cl.Message(content="Danke für dein Feedback! ✅").send()
 
-
 @cl.action_callback("fb_down")
 async def on_feedback_down(action: cl.Action):
     payload = action.payload or {}
 
+    # 1) Nutzer-Eingabe abfragen (Timeout großzügig)
     ask = cl.AskUserMessage(
         content="Was hättest du als Antwort erwartet? (optional mit Links/Beispielen)",
-        timeout=180,
+        timeout=60,
     )
     res = await ask.send()
-    expected = (res.get("content") or "").strip() if isinstance(res, dict) else ""
 
+    # 2) Robust extrahieren (dict | str | None)
+    expected = ""
+    if isinstance(res, dict):
+        expected = (res.get("output") or "").strip()
+    elif isinstance(res, str):
+        expected = res.strip()
+
+    # 3) Alles, was wir speichern wollen, kompakt in 'extra'
+    extra_payload = {
+        "user_question": payload.get("user_input") or "",
+        "expected_text": expected,  # <- das Feld, das dir fehlt
+    }
+
+    # 4) Debug-Log: siehst du in der Server-Konsole
+    try:
+        cl.logger.info(f"[feedback:down] will save extra={extra_payload}")
+    except Exception:
+        pass
+
+    # 5) Persistieren
     save_feedback(
         kind="down",
         assistant_message_id=payload.get("assistant_message_id"),
         assistant_text=payload.get("assistant_text") or "",
-        user_expected=expected or None,
-        user_id=None,  # bewusst anonym
-        thread_id=None,
-        extra={"source": "ui_button"},
+        user_expected=expected,  # direktes Feld
+        extra={
+            "user_question": payload.get("user_input") or "",
+        },
     )
 
-    # Optional: Buttons nach Klick ausblenden
+    # 6) UI: Buttons optional ausblenden (je nach Version nicht verfügbar)
     try:
-        if action.parent:
+        if getattr(action, "parent", None):
             action.parent.actions = []
             await action.parent.update()
     except Exception:
         pass
 
-    await cl.Message(
-        content=("Danke! Wir nutzen dein Feedback zur Verbesserung. 🙏" if expected else "Danke! Feedback wurde gespeichert. 🙏")
-    ).send()
+    cl.user_session.set("chat_closed", True)
+    msg = "Danke! Wir nutzen dein Feedback zur Verbesserung. 🙏" if expected else "Danke! Feedback wurde gespeichert. 🙏"
+    await cl.Message(content=f"{msg}\n\n_(Diese Unterhaltung wurde beendet. Bitte starte einen **neuen Chat**.)_").send()
