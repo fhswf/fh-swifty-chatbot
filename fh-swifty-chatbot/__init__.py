@@ -1,0 +1,2 @@
+"""FH Swifty Chatbot Paket."""
+
