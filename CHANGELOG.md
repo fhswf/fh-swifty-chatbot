@@ -1,6 +1,20 @@
 # CHANGELOG
 
 
+## v0.8.0 (2025-10-26)
+
+### Features
+
+- Add initial module files and README for FH Swifty Chatbot and testing framework
+  ([`d9937d8`](https://github.com/fhswf/fh-swifty-chatbot/commit/d9937d8328f975fc3be7f231cdf68688018fe72b))
+
+- Add test script for blacklist system with simple and interactive modes
+  ([`26f580f`](https://github.com/fhswf/fh-swifty-chatbot/commit/26f580f9bbda513bbbcad348d2a4edf21bbffd8d))
+
+- Implement blacklist checking module and corresponding test script for prompt validation
+  ([`d38f351`](https://github.com/fhswf/fh-swifty-chatbot/commit/d38f3516f154c8b5b015e1a662b5ec5fb5ebeab6))
+
+
 ## v0.7.0 (2025-10-23)
 
 ### Features
