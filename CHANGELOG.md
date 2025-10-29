@@ -1,6 +1,41 @@
 # CHANGELOG
 
 
+## v0.8.0 (2025-10-26)
+
+### Features
+
+- Add initial module files and README for FH Swifty Chatbot and testing framework
+  ([`d9937d8`](https://github.com/fhswf/fh-swifty-chatbot/commit/d9937d8328f975fc3be7f231cdf68688018fe72b))
+
+- Add test script for blacklist system with simple and interactive modes
+  ([`26f580f`](https://github.com/fhswf/fh-swifty-chatbot/commit/26f580f9bbda513bbbcad348d2a4edf21bbffd8d))
+
+- Implement blacklist checking module and corresponding test script for prompt validation
+  ([`d38f351`](https://github.com/fhswf/fh-swifty-chatbot/commit/d38f3516f154c8b5b015e1a662b5ec5fb5ebeab6))
+
+
+## v0.7.0 (2025-10-23)
+
+### Features
+
+- Update user message autoscroll setting and rename assistant in UI
+  ([`293ee6b`](https://github.com/fhswf/fh-swifty-chatbot/commit/293ee6bdb84d38397235937b3cfb194ba950ac7f))
+
+
+## v0.6.0 (2025-10-23)
+
+### Features
+
+- Implement feedback and fallback mechanisms, including user feedback storage and mock replies
+  during service outages
+  ([`6f9cc5a`](https://github.com/fhswf/fh-swifty-chatbot/commit/6f9cc5a0cf76bec0ef29b7241ef1845a894f644c))
+
+- Update feedback handling and fallback responses, including user input storage and improved mock
+  replies
+  ([`52fc0e0`](https://github.com/fhswf/fh-swifty-chatbot/commit/52fc0e05d8a384cd7773bf63eaeb537d7f1c3349))
+
+
 ## v0.5.0 (2025-10-10)
 
 ### Chores
