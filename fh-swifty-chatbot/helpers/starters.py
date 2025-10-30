@@ -10,7 +10,7 @@ import numpy as np
 from langsmith import Client
 
 # --- CONFIG ---
-PROJECT        = os.getenv("LANGCHAIN_PROJECT", "fh-swf-bot")
+PROJECT        = os.getenv("LANGSMITH_PROJECT", "fh-swf-bot")
 LOOKBACK_DAYS  = int(os.getenv("STARTERS_LOOKBACK_DAYS", "30"))
 MAX_CLUSTERS   = int(os.getenv("STARTERS_MAX", "6"))   # wie viele Starters
 OUT_PATH       = os.getenv("STARTERS_OUT", "starters.json")
