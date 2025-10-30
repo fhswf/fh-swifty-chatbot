@@ -2,7 +2,7 @@ import chainlit as cl
 from typing import Optional, List, cast
 
 from langchain_openai import ChatOpenAI
-from langchain.schema.runnable import Runnable, RunnableConfig
+from langchain_core.runnables import Runnable, RunnableConfig
 from langgraph.prebuilt import create_react_agent
 from langchain_core.messages import HumanMessage
 
@@ -16,6 +16,35 @@ from helpers.fallback import build_mock_reply, stream_mock_reply
 # OpenAI v1: Top-Level Exceptions
 from openai import OpenAIError, RateLimitError, AuthenticationError, BadRequestError
 
+@cl.set_starters
+async def set_starters():
+    return [
+        cl.Starter(
+            label="Informatikstudiengänge",
+            message="Welche Informatikstudiengänge gibt es an der FH Südwestfalen? Können Sie mir Details zu den verschiedenen Programmen und deren Schwerpunkten geben?",
+            icon="/public/study.svg",
+        ),
+        cl.Starter(
+            label="Duales Studium",
+            message="Wie funktioniert das duale Studium an der FH Südwestfalen? Welche Vorteile bietet es und wie läuft die Praxisphase ab?",
+            icon="/public/university.svg",
+        ),
+        cl.Starter(
+            label="KI-Recht Prüfungsanmeldung",
+            message="Wann ist die Prüfungsanmeldung für KI-Recht? Wie melde ich mich an und was sind die Voraussetzungen?",
+            icon="/public/schedule.svg",
+        ),
+        cl.Starter(
+            label="Raum P107 heute",
+            message="Was findet heute in Raum P107 statt? Können Sie mir den aktuellen Belegungsplan oder Stundenplan für diesen Raum zeigen?",
+            icon="/public/time.svg",
+        ),
+        cl.Starter(
+            label="Sprechstunde Herr Gawron",
+            message="Wann hat Herr Gawron Sprechstunde? Wie kann ich einen Termin vereinbaren und wo findet die Sprechstunde statt?",
+            icon="/public/professor.svg",
+        )
+    ]
 
 @cl.on_chat_start
 async def on_chat_start():

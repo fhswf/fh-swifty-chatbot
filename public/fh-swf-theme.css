@@ -1,0 +1,152 @@
+/* FH Südwestfalen Color Scheme for Chainlit */
+
+/* CSS Custom Properties for easy color management */
+:root {
+  /* FH SWF Brand Colors */
+  --fh-primary: #0066cc !important;      /* FH SWF Blue */
+  --fh-secondary: #003d7a !important;    /* Darker Blue */
+  --fh-accent: #ff6600 !important;       /* Orange accent */
+  --fh-light-bg: #f8f9fa !important;     /* Light background */
+  --fh-dark-bg: #1a1a1a !important;      /* Dark background */
+  --fh-text-light: #333333 !important;   /* Dark text for light theme */
+  --fh-text-dark: #ffffff !important;    /* Light text for dark theme */
+}
+
+/* Override Chainlit's default colors - Light Theme */
+.light {
+  --primary-50: #e6f2ff !important;
+  --primary-100: #b3d9ff !important;
+  --primary-200: #80c0ff !important;
+  --primary-300: #4da6ff !important;
+  --primary-400: #1a8cff !important;
+  --primary-500: var(--fh-primary) !important;
+  --primary-600: #0052a3 !important;
+  --primary-700: var(--fh-secondary) !important;
+  --primary-800: #002952 !important;
+  --primary-900: #001429 !important;
+  
+  --accent-50: #fff2e6 !important;
+  --accent-500: var(--fh-accent) !important;
+  --accent-600: #e55a00 !important;
+  --accent-700: #cc5200 !important;
+}
+
+/* Override Chainlit's default colors - Dark Theme */
+.dark {
+  --primary-50: #001429 !important;
+  --primary-100: #002952 !important;
+  --primary-200: var(--fh-secondary) !important;
+  --primary-300: #0052a3 !important;
+  --primary-400: var(--fh-primary) !important;
+  --primary-500: #1a8cff !important;
+  --primary-600: #4da6ff !important;
+  --primary-700: #80c0ff !important;
+  --primary-800: #b3d9ff !important;
+  --primary-900: #e6f2ff !important;
+  
+  --accent-50: #cc5200 !important;
+  --accent-500: var(--fh-accent) !important;
+  --accent-600: #ff7a1a !important;
+  --accent-700: #ff8533 !important;
+  
+  --gray-900: var(--fh-dark-bg) !important;
+  --gray-800: #2d2d2d !important;
+  --gray-700: #404040 !important;
+}
+
+/* Specific Chainlit component styling */
+
+/* Main app background */
+#root {
+  background-color: var(--gray-50) !important;
+}
+
+.dark #root {
+  background-color: var(--fh-dark-bg) !important;
+}
+
+/* Header/Navigation */
+.cl-header {
+  background-color: var(--primary-500) !important;
+  border-bottom-color: var(--primary-600) !important;
+}
+
+/* Message containers */
+.cl-message {
+  border-color: var(--gray-200) !important;
+}
+
+.dark .cl-message {
+  border-color: var(--gray-700) !important;
+}
+
+/* Assistant messages */
+.cl-message.cl-assistant-message .cl-message-content {
+  background-color: var(--primary-50) !important;
+  border-left: 4px solid var(--primary-500) !important;
+}
+
+.dark .cl-message.cl-assistant-message .cl-message-content {
+  background-color: var(--gray-800) !important;
+  border-left: 4px solid var(--primary-400) !important;
+}
+
+/* User messages */
+.cl-message.cl-user-message .cl-message-content {
+  background-color: var(--accent-50) !important;
+  border-left: 4px solid var(--accent-500) !important;
+}
+
+.dark .cl-message.cl-user-message .cl-message-content {
+  background-color: var(--gray-800) !important;
+  border-left: 4px solid var(--accent-500) !important;
+}
+
+/* Buttons */
+.cl-button, button[class*="primary"] {
+  background-color: var(--primary-500) !important;
+  border-color: var(--primary-500) !important;
+}
+
+.cl-button:hover, button[class*="primary"]:hover {
+  background-color: var(--primary-600) !important;
+  border-color: var(--primary-600) !important;
+}
+
+/* Sidebar */
+.cl-sidebar {
+  background-color: var(--gray-50) !important;
+  border-right-color: var(--gray-200) !important;
+}
+
+.dark .cl-sidebar {
+  background-color: var(--gray-800) !important;
+  border-right-color: var(--gray-700) !important;
+}
+
+/* Avatar styling */
+.cl-avatar {
+  border: 2px solid var(--primary-500) !important;
+}
+
+/* Loading indicators */
+.cl-spinner {
+  color: var(--primary-500) !important;
+}
+
+/* Links */
+a {
+  color: var(--primary-600) !important;
+}
+
+.dark a {
+  color: var(--primary-400) !important;
+}
+
+a:hover {
+  color: var(--primary-700) !important;
+}
+
+.dark a:hover {
+  color: var(--primary-300) !important;
+}
