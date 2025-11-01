@@ -1,57 +1,138 @@
+import os
+import traceback
 import chainlit as cl
 from typing import Optional, List, cast
+from uuid import uuid4
 
+# LangChain / LangGraph
 from langchain_openai import ChatOpenAI
 from langchain_core.runnables import Runnable, RunnableConfig
 from langgraph.prebuilt import create_react_agent
 from langchain_core.messages import HumanMessage
 
+# Eigene Helfer
 from helpers.tools import find_info_on_fhswf_website
 from helpers.prompts import prompt_langgraph
 
 # Feedback & Fallback
-from helpers.feedback import save_feedback
+#from helpers.feedback import save_feedback
 from helpers.fallback import build_mock_reply, stream_mock_reply
 
 # OpenAI v1: Top-Level Exceptions
 from openai import OpenAIError, RateLimitError, AuthenticationError, BadRequestError
 
+# LangSmith
+from langsmith import Client
+from langsmith.run_trees import RunTree
+
+
+# ===== Helpers für Logging =====
+def log_info(msg: str, extra: dict | None = None):
+    try:
+        cl.logger.info(msg if extra is None else f"{msg} | extra={extra}")
+    except Exception:
+        print(msg, extra or "")
+
+def log_error(msg: str, err: Exception | None = None):
+    try:
+        if err:
+            cl.logger.error(f"{msg}: {repr(err)}\n{traceback.format_exc()}")
+        else:
+            cl.logger.error(msg)
+    except Exception:
+        print(msg)
+        if err:
+            traceback.print_exc()
+
+
+# ===== LangSmith Client einmalig anlegen =====
+client = Client()
+
+def ensure_langsmith_ready():
+    """
+    Versionssicherer Connectivity-Check (kein whoami, falls ältere langsmith-Version).
+    """
+    api_key = os.getenv("LANGSMITH_API_KEY")
+    endpoint = os.getenv("LANGSMITH_ENDPOINT")
+    log_info("[LangSmith] env", {"endpoint": endpoint, "has_key": bool(api_key)})
+
+    if not api_key:
+        log_error("[LangSmith] kein LANGCHAIN_API_KEY gesetzt – Runs/Feedback werden nicht gesendet.")
+        return
+
+    try:
+        # harmloser Ping, funktioniert quer über Versionen
+        _ = list(client.list_projects(limit=1))
+        log_info("[LangSmith] connectivity OK")
+    except Exception as e:
+        log_error("[LangSmith] connectivity FAILED (prüfe API-Key/Endpoint/Firewall)", e)
+
+
 @cl.set_starters
 async def set_starters():
-    return [
-        cl.Starter(
-            label="Informatikstudiengänge",
-            message="Welche Informatikstudiengänge gibt es an der FH Südwestfalen? Können Sie mir Details zu den verschiedenen Programmen und deren Schwerpunkten geben?",
-            icon="/public/study.svg",
-        ),
-        cl.Starter(
-            label="Duales Studium",
-            message="Wie funktioniert das duale Studium an der FH Südwestfalen? Welche Vorteile bietet es und wie läuft die Praxisphase ab?",
-            icon="/public/university.svg",
-        ),
-        cl.Starter(
-            label="KI-Recht Prüfungsanmeldung",
-            message="Wann ist die Prüfungsanmeldung für KI-Recht? Wie melde ich mich an und was sind die Voraussetzungen?",
-            icon="/public/schedule.svg",
-        ),
-        cl.Starter(
-            label="Raum P107 heute",
-            message="Was findet heute in Raum P107 statt? Können Sie mir den aktuellen Belegungsplan oder Stundenplan für diesen Raum zeigen?",
-            icon="/public/time.svg",
-        ),
-        cl.Starter(
-            label="Sprechstunde Herr Gawron",
-            message="Wann hat Herr Gawron Sprechstunde? Wie kann ich einen Termin vereinbaren und wo findet die Sprechstunde statt?",
-            icon="/public/professor.svg",
-        )
+    import json, os
+
+    path = os.getenv("STARTERS_OUT", "starters.json")
+    items = []
+    try:
+        if os.path.exists(path):
+            with open(path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                items = data.get("items", [])
+    except Exception as e:
+        try:
+            cl.logger.warning(f"[Starters] Konnte {path} nicht laden: {e}")
+        except Exception:
+            pass
+
+    # Fallback, wenn nichts geladen wurde
+    if not items:
+        items = [
+            {
+                "label":"Informatikstudiengänge",
+                "message":"Welche Informatikstudiengänge gibt es an der FH Südwestfalen? Können Sie mir Details zu den verschiedenen Programmen und deren Schwerpunkten geben?",
+                "icon":"/public/study.svg",
+            },
+            {
+                "label":"Duales Studium",
+                "message":"Wie funktioniert das duale Studium an der FH Südwestfalen? Welche Vorteile bietet es und wie läuft die Praxisphase ab?",
+                "icon":"/public/university.svg",
+            },
+            {
+                "label":"KI-Recht Prüfungsanmeldung",
+                "message":"Wann ist die Prüfungsanmeldung für KI-Recht? Wie melde ich mich an und was sind die Voraussetzungen?",
+                "icon":"/public/schedule.svg",
+            },
+            {
+                "label":"Raum P107 heute",
+                "message":"Was findet heute in Raum P107 statt? Können Sie mir den aktuellen Belegungsplan oder Stundenplan für diesen Raum zeigen?",
+                "icon":"/public/time.svg",
+            },
+            {
+                "label":"Sprechstunde Herr Gawron",
+                "message":"Wann hat Herr Gawron Sprechstunde? Wie kann ich einen Termin vereinbaren und wo findet die Sprechstunde statt?",
+                "icon":"/public/professor.svg",
+            },
+        ]
+
+    # Auf Chainlit-Objekte mappen
+    starters = [
+        cl.Starter(label=i["label"], message=i["message"], icon=i.get("icon"))
+        for i in items
     ]
+    return starters
+
+
 
 @cl.on_chat_start
 async def on_chat_start():
+    ensure_langsmith_ready()
+
     model = ChatOpenAI(model="gpt-4o", streaming=True)
     tools = [find_info_on_fhswf_website]
     agent = create_react_agent(model=model, tools=tools, prompt=prompt_langgraph)
     cl.user_session.set("agent_langgraph", agent)
+    log_info("[Chat] Agent initialisiert")
 
 
 @cl.on_message
@@ -62,6 +143,18 @@ async def main(message: cl.Message):
     msg_uis: List[cl.Message] = []
     msg_ui: Optional[cl.Message] = None
     last_assistant_text_parts: List[str] = []
+
+    # ===== Root-Run für diesen Turn in LangSmith anlegen =====
+    root = RunTree(
+        name="chat_turn",
+        run_type="chain",
+        project_name=os.getenv("LANGSMITH_PROJECT"),
+        id=str(uuid4()),  # explizit String-ID erzeugen
+        inputs={"user_message": message.content or ""},
+        metadata={"source": "chainlit", "langgraph": True},
+    )
+    run_id_str = str(root.id)  # immer als STRING weitergeben
+    log_info("[LangSmith] Root created", {"run_id": run_id_str})
 
     try:
         if agent_langgraph is None:
@@ -96,11 +189,21 @@ async def main(message: cl.Message):
         for ui in msg_uis:
             await ui.send()
 
-        # Feedback-Buttons an die letzte Blase hängen (falls vorhanden)
+        # ===== Root-Run abschließen & posten =====
+        full_answer = "".join(last_assistant_text_parts).strip()
+        try:
+            root.end(outputs={"assistant_text": full_answer})
+            root.post()
+            log_info("[LangSmith] Root posted", {"run_id": run_id_str, "answer_len": len(full_answer)})
+        except Exception as e:
+            log_error("[LangSmith] root.post FAILED", e)
+
+        # run_id für spätere Feedback-Calls bereitstellen (STRING!)
+        cl.user_session.set("last_run_id", run_id_str)
+
         if msg_uis:
             last = msg_uis[-1]
-            assistant_text = "".join(last_assistant_text_parts).strip()
-            # >>> Hier: user_input in payload aufnehmen
+            assistant_text = full_answer
             last.actions = [
                 cl.Action(
                     name="fb_up",
@@ -110,6 +213,7 @@ async def main(message: cl.Message):
                         "assistant_message_id": last.id,
                         "assistant_text": assistant_text,
                         "user_input": message.content or "",
+                        "run_id": run_id_str,
                     },
                 ),
                 cl.Action(
@@ -120,65 +224,56 @@ async def main(message: cl.Message):
                         "assistant_message_id": last.id,
                         "assistant_text": assistant_text,
                         "user_input": message.content or "",
+                        "run_id": run_id_str,
                     },
                 ),
             ]
             await last.update()
 
     # ---------- Fallback bei Ausfällen ----------
-    except (RateLimitError, AuthenticationError, BadRequestError, OpenAIError, Exception):
-        # Hinweis (optional)
-        await cl.Message(
-            content="Der KI-Dienst ist gerade nicht erreichbar"
-        ).send()
+    except (RateLimitError, AuthenticationError, BadRequestError, OpenAIError, Exception) as e:
+        log_error("[Chat] Exception im Turn", e)
+
+        await cl.Message(content="Der KI-Dienst ist gerade nicht erreichbar").send()
 
         # Simulierte Antwort aufbauen & streamen
         mock_text = build_mock_reply(message.content or "")
         last = await stream_mock_reply(mock_text)
+
+        # Auch den Root-Run sauber beenden & posten (als Fallback markiert)
+        try:
+            root.end(outputs={"assistant_text": mock_text}, error=False, metadata={"fallback": True})
+            root.post()
+            log_info("[LangSmith] Root posted (fallback)", {"run_id": run_id_str})
+        except Exception as e2:
+            log_error("[LangSmith] root.post FAILED (fallback)", e2)
+
         
-        """ # Feedback-Buttons auch an die simulierte Antwort
-        if last:
-            last.actions = [
-                cl.Action(
-                    name="fb_up",
-                    label="👍",
-                    value="up",
-                    payload={
-                        "assistant_message_id": last.id,
-                        "assistant_text": mock_text,
-                        "user_question": message.content or "",
-                    },
-                ),
-                cl.Action(
-                    name="fb_down",
-                    label="👎",
-                    value="down",
-                    payload={
-                        "assistant_message_id": last.id,
-                        "assistant_text": mock_text,
-                        "user_question": message.content or "",
-                    },
-                ),
-            ]
-            await last.update() """
 
 
-# ======= Feedback-Callbacks (anonym, nur Session/Thread-ID) =======
+# ======= Feedback-Callbacks =======
 
 @cl.action_callback("fb_up")
 async def on_feedback_up(action: cl.Action):
     payload = action.payload or {}
-    save_feedback(
-        kind="up",
-        assistant_message_id=payload.get("assistant_message_id"),
-        assistant_text=payload.get("assistant_text") or "",
-        extra={
-            # optional mitgeben, falls du es auch beim Upvote speichern willst:
-            "user_question": payload.get("user_input") or "",
-        },
-    )
+    run_id = payload.get("run_id")
 
-    # Optional: Buttons nach Klick ausblenden (in manchen Chainlit-Versionen existiert action.parent nicht)
+    # LangSmith-Feedback (👍)
+    if run_id:
+        try:
+            fb = client.create_feedback(
+                run_id=run_id,           # STRING OK
+                key="thumbs",
+                score=1,                 # upvote
+                source_info={"user_question": payload.get("user_input") or ""},
+            )
+            log_info("[LangSmith] feedback OK (up)", {"run_id": run_id, "feedback_id": getattr(fb, "id", None)})
+        except Exception as e:
+            log_error("[LangSmith] feedback FAILED (up)", e)
+    else:
+        log_error("[LangSmith] feedback skipped: missing run_id")
+
+    # Buttons ausblenden
     try:
         if getattr(action, "parent", None):
             action.parent.actions = []
@@ -186,13 +281,15 @@ async def on_feedback_up(action: cl.Action):
     except Exception:
         pass
 
-    await cl.Message(content="Danke für dein Feedback! ✅").send()
+    await cl.Message(content="Danke für dein Feedback!").send()
+
 
 @cl.action_callback("fb_down")
 async def on_feedback_down(action: cl.Action):
     payload = action.payload or {}
+    run_id = payload.get("run_id")
 
-    # 1) Nutzer-Eingabe abfragen (Timeout großzügig)
+    # 1) Nutzer-Eingabe abfragen
     ask = cl.AskUserMessage(
         content="Was hättest du als Antwort erwartet? (optional mit Links/Beispielen)",
         timeout=60,
@@ -206,30 +303,24 @@ async def on_feedback_down(action: cl.Action):
     elif isinstance(res, str):
         expected = res.strip()
 
-    # 3) Alles, was wir speichern wollen, kompakt in 'extra'
-    extra_payload = {
-        "user_question": payload.get("user_input") or "",
-        "expected_text": expected,  # <- das Feld, das dir fehlt
-    }
+    # 3) LangSmith-Feedback (👎)
+    if run_id:
+        try:
+            fb = client.create_feedback(
+                run_id=run_id,          # STRING OK
+                key="thumbs",
+                score=0,                 # downvote
+                comment=expected or None,
+                source_info={"user_question": payload.get("user_input") or ""},
+            )
+            log_info("[LangSmith] feedback OK (down)", {"run_id": run_id, "feedback_id": getattr(fb, "id", None)})
+        except Exception as e:
+            log_error("[LangSmith] feedback FAILED (down)", e)
+    else:
+        log_error("[LangSmith] feedback skipped: missing run_id")
 
-    # 4) Debug-Log: siehst du in der Server-Konsole
-    try:
-        cl.logger.info(f"[feedback:down] will save extra={extra_payload}")
-    except Exception:
-        pass
 
-    # 5) Persistieren
-    save_feedback(
-        kind="down",
-        assistant_message_id=payload.get("assistant_message_id"),
-        assistant_text=payload.get("assistant_text") or "",
-        user_expected=expected,  # direktes Feld
-        extra={
-            "user_question": payload.get("user_input") or "",
-        },
-    )
-
-    # 6) UI: Buttons optional ausblenden (je nach Version nicht verfügbar)
+    # 4) Buttons ausblenden
     try:
         if getattr(action, "parent", None):
             action.parent.actions = []
@@ -238,5 +329,7 @@ async def on_feedback_down(action: cl.Action):
         pass
 
     cl.user_session.set("chat_closed", True)
-    msg = "Danke! Wir nutzen dein Feedback zur Verbesserung. 🙏" if expected else "Danke! Feedback wurde gespeichert. 🙏"
-    await cl.Message(content=f"{msg}\n\n_(Diese Unterhaltung wurde beendet. Bitte starte einen **neuen Chat**.)_").send()
+    msg = "Danke! Wir nutzen dein Feedback zur Verbesserung." if expected else "Danke! Feedback wurde gespeichert."
+    await cl.Message(
+        content=f"{msg}\n\n_(Diese Unterhaltung wurde beendet. Bitte starte einen **neuen Chat**.)_"
+    ).send()
