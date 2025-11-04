@@ -18,7 +18,7 @@ class BlacklistResponse(BaseModel):
     )
     reason: str = Field(
         description="Grund für die Klassifizierung",
-        max_length=150
+        max_length=200
     )
 
 
