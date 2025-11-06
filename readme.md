@@ -115,6 +115,10 @@ Der Chatbot benötigt folgende Umgebungsvariablen:
 - `TAVILY_API_KEY`: API-Schlüssel für Tavily Search
 - `OPENAI_BASE_URL`: (Optional) Benutzerdefinierte OpenAI-URL
 - `HTTPS_PROXY`: (Optional) Proxy-Konfiguration
+- `LANGSMITH_API_KEY`: API-Schlüssel für LANGSMITH
+- `LANGSMITH_PROJECT`: ProjektName für LANGSMITH
+- `LANGSMITH_ENDPOINT`: "https://api.smith.langchain.com"
+- `LANGSMITH_TRACING`: "true"
 
 **Sicherheitshinweis**: Alle API-Schlüssel und Proxy-Konfigurationen sollten in einer `.env`-Datei gespeichert werden, die **nicht** ins Repository committed wird.
 
