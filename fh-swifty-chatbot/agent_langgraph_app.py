@@ -2,6 +2,7 @@ import os
 import traceback
 import chainlit as cl
 from typing import Optional, List, cast
+import asyncio
 from uuid import uuid4
 
 # LangChain / LangGraph
@@ -163,6 +164,24 @@ async def main(message: cl.Message):
     msg_uis: List[cl.Message] = []
     msg_ui: Optional[cl.Message] = None
     last_assistant_text_parts: List[str] = []
+    
+    # Status message for progress indication
+    status_msg: Optional[cl.Message] = None
+    is_streaming_started = False
+    timeout_warning_shown = False
+    timeout_task = None
+
+    async def show_timeout_warning():
+        """Show warning if task takes longer than expected"""
+        nonlocal timeout_warning_shown
+        await asyncio.sleep(10)  # Wait 10 seconds
+        if not timeout_warning_shown:
+            timeout_warning_shown = True
+            status_msg_timeout = await cl.Message(
+                content="⏳ Das dauert etwas länger als üblich, bitte habe noch einen Moment Geduld..."
+            ).send()
+        await asyncio.sleep(5)
+        await status_msg_timeout.remove()
 
     # ===== Root-Run für diesen Turn in LangSmith anlegen =====
     root = RunTree(
@@ -180,6 +199,13 @@ async def main(message: cl.Message):
         if agent_langgraph is None:
             raise RuntimeError("Agent nicht bereit")
 
+        # Initial status: Thinking phase
+        status_msg = cl.Message(content="🤔 Denke nach und analysiere deine Anfrage...")
+        await status_msg.send()
+        
+        # Start timeout warning task
+        timeout_task = asyncio.create_task(show_timeout_warning())
+
         async for msg, metadata in agent_langgraph.astream(
             {"messages": [HumanMessage(message.content or "")]},
             stream_mode="messages",
@@ -190,9 +216,21 @@ async def main(message: cl.Message):
             step = (metadata or {}).get("langgraph_step")
             content = (msg.content or "")
 
+            # Update status when tools are being used
+            if node == "tools" and status_msg:
+                status_msg.content = "🔍 Suche nach relevanten Informationen auf der FH-Website..."
+                await status_msg.update()
+
             # Neue UI-Blase je neuem Schritt (außer tools) mit Inhalt
             if step != langgraph_step and node != "tools" and content:
                 langgraph_step = step
+                
+                # Update status to streaming phase when content starts
+                if not is_streaming_started and status_msg:
+                    status_msg.content = "✍️ Formuliere die Antwort..."
+                    await status_msg.update()
+                    is_streaming_started = True
+                
                 msg_ui = cl.Message(content="")
                 msg_uis.append(msg_ui)
                 last_assistant_text_parts = []
@@ -205,9 +243,26 @@ async def main(message: cl.Message):
                 await msg_ui.stream_token(content)
                 last_assistant_text_parts.append(content)
 
+        # Cancel timeout warning task
+        if timeout_task:
+            timeout_task.cancel()
+            try:
+                await timeout_task
+            except asyncio.CancelledError:
+                pass
+        
+        # Update status to finalize phase
+        if status_msg:
+            status_msg.content = "✅ Fertig!"
+            await status_msg.update()
+        
         # final senden
         for ui in msg_uis:
             await ui.send()
+        
+        # Remove status message after completion
+        if status_msg:
+            await status_msg.remove()
 
         # ===== Root-Run abschließen & posten =====
         full_answer = "".join(last_assistant_text_parts).strip()
@@ -253,10 +308,26 @@ async def main(message: cl.Message):
             await last.update()
 
     # ---------- Fallback bei Ausfällen ----------
-    except (RateLimitError, AuthenticationError, BadRequestError, OpenAIError, Exception) as e:
-        log_error("[Chat] Exception im Turn", e)
-
-        await cl.Message(content="Der KI-Dienst ist gerade nicht erreichbar").send()
+    except (RateLimitError, AuthenticationError, BadRequestError, OpenAIError, Exception):
+        # Cancel timeout warning task in case of error
+        if timeout_task:
+            timeout_task.cancel()
+            try:
+                await timeout_task
+            except asyncio.CancelledError:
+                pass
+        
+        # Remove status message in case of error
+        if status_msg:
+            try:
+                await status_msg.remove()
+            except Exception:
+                pass
+        
+        # Hinweis (optional)
+        await cl.Message(
+            content="Der KI-Dienst ist gerade nicht erreichbar"
+        ).send()
 
         # Simulierte Antwort aufbauen & streamen
         mock_text = build_mock_reply(message.content or "")
