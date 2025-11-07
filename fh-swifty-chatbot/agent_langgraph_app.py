@@ -433,6 +433,8 @@ async def on_feedback_down(action: cl.Action):
 # ======= MCP-Callbacks =======
 @cl.on_mcp_connect
 async def on_mcp(connection, session: ClientSession):
+    log_info("[MCP] Connected to FH SWF MCP Server", {"connection": connection})
+    log_info("[SESSION]", session)
     # List available tools
     result = await session.list_tools()
     
