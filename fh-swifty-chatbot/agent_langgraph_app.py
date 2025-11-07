@@ -27,6 +27,8 @@ from openai import OpenAIError, RateLimitError, AuthenticationError, BadRequestE
 from langsmith import Client
 from langsmith.run_trees import RunTree
 
+from mcp import ClientSession
+
 
 # ===== Helpers für Logging =====
 def log_info(msg: str, extra: dict | None = None):
@@ -426,3 +428,29 @@ async def on_feedback_down(action: cl.Action):
     await cl.Message(
         content=f"{msg}\n\n_(Diese Unterhaltung wurde beendet. Bitte starte einen **neuen Chat**.)_"
     ).send()
+
+
+# ======= MCP-Callbacks =======
+@cl.on_mcp_connect
+async def on_mcp(connection, session: ClientSession):
+    # List available tools
+    result = await session.list_tools()
+    
+    # Process tool metadata
+    tools = [{
+        "name": t.name,
+        "description": t.description,
+        "input_schema": t.inputSchema,
+    } for t in result.tools]
+    
+    # Store tools for later use
+    mcp_tools = cl.user_session.get("mcp_tools", {})
+    mcp_tools[connection.name] = tools
+    cl.user_session.set("mcp_tools", mcp_tools)
+    
+    
+@cl.on_mcp_disconnect
+async def on_mcp_disconnect(name: str, session: ClientSession):
+    """Called when an MCP connection is terminated"""
+    # Your cleanup code here
+    # This handler is optional
