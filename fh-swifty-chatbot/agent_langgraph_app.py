@@ -227,7 +227,8 @@ async def main(message: cl.Message):
             last.actions = [
                 cl.Action(
                     name="fb_up",
-                    label="👍",
+                    #label="👍",
+                    icon="thumbs-up",
                     value="up",
                     payload={
                         "assistant_message_id": last.id,
@@ -238,7 +239,8 @@ async def main(message: cl.Message):
                 ),
                 cl.Action(
                     name="fb_down",
-                    label="👎",
+                    #label="👎",
+                    icon="thumbs-down",
                     value="down",
                     payload={
                         "assistant_message_id": last.id,

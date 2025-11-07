@@ -3,3 +3,6 @@ venv
 uv.lock
 __pycache__
 *.egg-info
+crawler/downloaded**
+rules*
+003*
