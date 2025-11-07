@@ -177,9 +177,11 @@ async def main(message: cl.Message):
         await asyncio.sleep(10)  # Wait 10 seconds
         if not timeout_warning_shown:
             timeout_warning_shown = True
-            await cl.Message(
+            status_msg_timeout = await cl.Message(
                 content="⏳ Das dauert etwas länger als üblich, bitte habe noch einen Moment Geduld..."
             ).send()
+        await asyncio.sleep(5)
+        await status_msg_timeout.remove()
 
     # ===== Root-Run für diesen Turn in LangSmith anlegen =====
     root = RunTree(
