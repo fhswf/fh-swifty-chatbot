@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.9.0 (2025-11-08)
+
+### Features
+
+- Add custom FH-SWF favicon to match branding
+  ([`504990d`](https://github.com/fhswf/fh-swifty-chatbot/commit/504990d7eed5178bc691d2c5644bb73c740832d0))
+
+
 ## v0.8.0 (2025-10-26)
 
 ### Features
