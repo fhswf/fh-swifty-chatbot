@@ -14,6 +14,7 @@ from langchain_core.messages import HumanMessage
 # Eigene Helfer
 from helpers.tools import find_info_on_fhswf_website
 from helpers.prompts import prompt_langgraph
+from helpers.check_blacklist import check_blacklist
 
 # Feedback & Fallback
 #from helpers.feedback import save_feedback
@@ -138,6 +139,25 @@ async def on_chat_start():
 
 @cl.on_message
 async def main(message: cl.Message):
+    # ========== BLACKLIST-ÜBERPRÜFUNG ==========
+    user_input = message.content or ""
+    
+    # Blacklist-Check durchführen
+    blacklist_result = check_blacklist(user_input)
+    
+    # Nur "not_valid" blockieren - "valid" und "neutral" sind erlaubt
+    if blacklist_result.get("category") == "not_valid":
+        reason = blacklist_result.get("reason", "Ihre Anfrage entspricht nicht unseren Richtlinien")
+        
+        # Blockierte Anfrage mit Begründung anzeigen
+        await cl.Message(
+            content=f"⚠️ **Ihre Anfrage konnte nicht verarbeitet werden.**\n\n"
+                   f"**Grund:** {reason}\n\n"
+                   f"Bitte stellen Sie eine Frage zum Studium oder zur FH Südwestfalen."
+        ).send()
+        return  # Anfrage wird hier beendet
+    
+    # ========== NORMALE VERARBEITUNG ==========
     agent_langgraph = cast(Runnable, cl.user_session.get("agent_langgraph"))
 
     langgraph_step = -1
@@ -157,9 +177,11 @@ async def main(message: cl.Message):
         await asyncio.sleep(10)  # Wait 10 seconds
         if not timeout_warning_shown:
             timeout_warning_shown = True
-            await cl.Message(
+            status_msg_timeout = await cl.Message(
                 content="⏳ Das dauert etwas länger als üblich, bitte habe noch einen Moment Geduld..."
             ).send()
+        await asyncio.sleep(5)
+        await status_msg_timeout.remove()
 
     # ===== Root-Run für diesen Turn in LangSmith anlegen =====
     root = RunTree(
@@ -260,7 +282,8 @@ async def main(message: cl.Message):
             last.actions = [
                 cl.Action(
                     name="fb_up",
-                    label="👍",
+                    #label="👍",
+                    icon="thumbs-up",
                     value="up",
                     payload={
                         "assistant_message_id": last.id,
@@ -271,7 +294,8 @@ async def main(message: cl.Message):
                 ),
                 cl.Action(
                     name="fb_down",
-                    label="👎",
+                    #label="👎",
+                    icon="thumbs-down",
                     value="down",
                     payload={
                         "assistant_message_id": last.id,
