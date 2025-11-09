@@ -28,6 +28,7 @@ from langsmith import Client
 from langsmith.run_trees import RunTree
 
 from mcp import ClientSession
+from langchain_mcp_adapters.tools import load_mcp_tools
 
 
 # ===== Helpers für Logging =====
@@ -139,10 +140,11 @@ async def on_chat_start():
     log_info("[Chat] Agent initialisiert")
 
 
+
 @cl.on_message
 async def main(message: cl.Message):
     # ==== LOG CHECK ===
-    log_info("Context Session", cl.context.session.mcp_sessions)
+
     # ========== BLACKLIST-ÜBERPRÜFUNG ==========
     user_input = message.content or ""
     
@@ -451,6 +453,16 @@ async def on_mcp(connection, session: ClientSession):
     mcp_tools = cl.user_session.get("mcp_tools", {})
     mcp_tools[connection.name] = tools
     cl.user_session.set("mcp_tools", mcp_tools)
+
+    # Create agent with tools
+    model = ChatOpenAI(model="gpt-4o", streaming=True)
+    log_info("Context Session", cl.context.session.mcp_sessions)
+    mcp_tools_nested = [await load_mcp_tools(session[0]) for session in cl.context.session.mcp_sessions.values()]
+    mcp_tools = [tool for sublist in mcp_tools_nested for tool in sublist]  # flatten the list of lists
+    tools = [find_info_on_fhswf_website] + mcp_tools
+    agent = create_react_agent(model=model, tools=tools, prompt=prompt_langgraph)
+    cl.user_session.set("agent_langgraph", agent)
+    log_info("[Chat] Agent Actualisiert")
     
     
 @cl.on_mcp_disconnect
