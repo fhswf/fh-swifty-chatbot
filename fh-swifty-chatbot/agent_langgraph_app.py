@@ -144,8 +144,6 @@ async def on_chat_start():
 
 @cl.on_message
 async def main(message: cl.Message):
-    # ==== LOG CHECK ===
-
     # ========== BLACKLIST-ÜBERPRÜFUNG ==========
     user_input = message.content or ""
     
