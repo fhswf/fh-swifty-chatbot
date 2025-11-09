@@ -141,6 +141,8 @@ async def on_chat_start():
 
 @cl.on_message
 async def main(message: cl.Message):
+    # ==== LOG CHECK ===
+    log_info("Context Session", cl.context.session.mcp_sessions)
     # ========== BLACKLIST-ÜBERPRÜFUNG ==========
     user_input = message.content or ""
     
