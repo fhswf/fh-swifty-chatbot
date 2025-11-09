@@ -1,8 +1,12 @@
 from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
+from datetime import datetime
 
-prompt_langgraph = """
+current_datetime = datetime.now().strftime("%A, %d.%m.%Y %H:%M")
+
+prompt_langgraph = f"""
     Du bist ein KI-Assistent für die FH Südwestfalen (SWF), eine Hochschule in Deutschland. Du bist hilfsbereit und freundlich. Du beantwortest Fragen über die Hochschule und ihre Studiengänge.
     Du kannst auch auf die Website der FH Südwestfalen (SWF) zugreifen über die Funktion "find_info_on_fhswf_website", um Informationen zu finden.
+    Aktuelles Datum und Uhrzeit: {current_datetime}
 """
 
 prompt = ChatPromptTemplate.from_messages(

@@ -10,6 +10,7 @@ from langchain_openai import ChatOpenAI
 from langchain_core.runnables import Runnable, RunnableConfig
 from langgraph.prebuilt import create_react_agent
 from langchain_core.messages import HumanMessage
+from langgraph.checkpoint.memory import InMemorySaver 
 
 # Eigene Helfer
 from helpers.tools import find_info_on_fhswf_website
@@ -135,7 +136,7 @@ async def on_chat_start():
 
     model = ChatOpenAI(model="gpt-4o", streaming=True)
     tools = [find_info_on_fhswf_website]
-    agent = create_react_agent(model=model, tools=tools, prompt=prompt_langgraph)
+    agent = create_react_agent(model=model, tools=tools, prompt=prompt_langgraph, checkpointer=InMemorySaver())
     cl.user_session.set("agent_langgraph", agent)
     log_info("[Chat] Agent initialisiert")
 
@@ -212,11 +213,16 @@ async def main(message: cl.Message):
         # Start timeout warning task
         timeout_task = asyncio.create_task(show_timeout_warning())
 
+        log_info("session id", cl.user_session.get("id"))
+
         async for msg, metadata in agent_langgraph.astream(
             {"messages": [HumanMessage(message.content or "")]},
             stream_mode="messages",
-            # Transparenz-Trace im UI (falls nicht gewünscht: RunnableConfig())
-            config=RunnableConfig(callbacks=[cl.LangchainCallbackHandler()]),
+            # Transparenz-Trace im UI + thread_id für Checkpointer
+            config=RunnableConfig(
+                configurable={"thread_id": cl.user_session.get("id")},
+                callbacks=[cl.LangchainCallbackHandler()]
+            )
         ):
             node = (metadata or {}).get("langgraph_node")
             step = (metadata or {}).get("langgraph_step")
@@ -460,7 +466,7 @@ async def on_mcp(connection, session: ClientSession):
     mcp_tools_nested = [await load_mcp_tools(session[0]) for session in cl.context.session.mcp_sessions.values()]
     mcp_tools = [tool for sublist in mcp_tools_nested for tool in sublist]  # flatten the list of lists
     tools = [find_info_on_fhswf_website] + mcp_tools
-    agent = create_react_agent(model=model, tools=tools, prompt=prompt_langgraph)
+    agent = create_react_agent(model=model, tools=tools, prompt=prompt_langgraph, checkpointer=InMemorySaver())
     cl.user_session.set("agent_langgraph", agent)
     log_info("[Chat] Agent Actualisiert")
     
