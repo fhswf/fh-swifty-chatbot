@@ -16,4 +16,4 @@ def get_weather(city: FH_SWF_Location) -> str:
 
 
 if __name__ == "__main__":
-    mcp.run(transport="http", port=8001)
+    mcp.run(transport="http", port=8000)
