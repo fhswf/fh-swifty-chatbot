@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.10.0 (2025-11-13)
+
+### Features
+
+- New deploy triggre
+  ([`a3ba981`](https://github.com/fhswf/fh-swifty-chatbot/commit/a3ba981c5de340420182576f6ac1dbcda82dc65e))
+
+
 ## v0.9.0 (2025-11-08)
 
 ### Features
