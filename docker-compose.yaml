@@ -33,39 +33,17 @@ services:
       - fh-swifty-network
     restart: always
 
-  # PostgreSQL with PGVector extension for vector database
-  postgres:
-    image: pgvector/pgvector:pg16
-    container_name: fh-swifty-postgres
-    environment:
-      - POSTGRES_DB=fh_swifty
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./init-scripts:/docker-entrypoint-initdb.d
-    networks:
-      - fh-swifty-network
-    restart: always
-
   # Neo4j Graph Database
   neo4j:
     image: neo4j:5.15-community
     container_name: fh-swifty-neo4j
     environment:
-      - NEO4J_AUTH=neo4j/password
-      - NEO4J_PLUGINS=["apoc"]
-      - NEO4J_dbms_security_procedures_unrestricted=apoc.*
+      - NEO4J_AUTH=neo4j/password123
     ports:
       - "7474:7474"
       - "7687:7687"
     volumes:
       - neo4j_data:/data
-      - neo4j_logs:/logs
-      - neo4j_import:/var/lib/neo4j/import
-      - neo4j_plugins:/plugins
     networks:
       - fh-swifty-network
     restart: always
