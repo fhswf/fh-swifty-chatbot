@@ -30,7 +30,7 @@ unsafe_allow_html = false
 latex = false
 
 # Autoscroll new user messages at the top of the window
-user_message_autoscroll = true
+user_message_autoscroll = false
 
 # Automatically tag threads with the current chat profile (if a chat profile is used)
 auto_tag_thread = true
@@ -66,16 +66,16 @@ reaction_on_message_received = false
 
 [features.mcp]
     # Enable Model Context Protocol (MCP) features
-    enabled = false
+    enabled = true
 
 [features.mcp.sse]
-    enabled = true
+    enabled = false
 
 [features.mcp.streamable-http]
     enabled = true
 
 [features.mcp.stdio]
-    enabled = true
+    enabled = false
     # Only the executables in the allow list can be used for MCP stdio server.
     # Only need the base name of the executable, e.g. "npx", not "/usr/bin/npx".
     # Please don't comment this line for now, we need it to parse the executable name.
@@ -83,9 +83,9 @@ reaction_on_message_received = false
 
 [UI]
 # Name of the assistant.
-name = "Assistant"
+name = "SWiFty-Bot"
 
-# default_theme = "dark"
+default_theme = "dark"
 
 # layout = "wide"
 
@@ -99,14 +99,14 @@ cot = "full"
 
 # Specify a CSS file that can be used to customize the user interface.
 # The CSS file can be served from the public directory or via an external link.
-# custom_css = "/public/test.css"
+custom_css = "/public/fh-swf-theme.css"
 
 # Specify additional attributes for a custom CSS file
 # custom_css_attributes = "media=\"print\""
 
 # Specify a JavaScript file that can be used to customize the user interface.
 # The JavaScript file can be served from the public directory.
-# custom_js = "/public/test.js"
+custom_js = "/public/mcp-config.js"
 
 # The style of alert boxes. Can be "classic" or "modern".
 alert_style = "classic"
@@ -129,7 +129,7 @@ alert_style = "classic"
 logo_file_url = ""
 
 # Load assistant avatar image directly from URL.
-default_avatar_file_url = ""
+default_avatar_file_url = "https://www.fh-swf.de/favicon.ico"
 
 # Specify a custom build directory for the frontend.
 # This can be used to customize the frontend code.

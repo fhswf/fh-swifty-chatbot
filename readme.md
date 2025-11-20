@@ -4,9 +4,10 @@
 Ein intelligenter KI-Chatbot für die FH Südwestfalen (SWF), entwickelt mit LangGraph und Chainlit. Der Chatbot kann Fragen über die Hochschule und ihre Studiengänge beantworten und greift dabei auf die offizielle Website der FH SWF zu.
 
 ## Projektstatus
-- **Version**: 0.1.3
+- **Version**: 0.1.5
 - **Status**: In Entwicklung
 - **Python erforderlich**: >=3.13
+- **Letzte Aktualisierung**: 18. September 2025
 
 ## Technologie-Stack
 - **LangGraph**: Agent-basierte Architektur
@@ -14,6 +15,9 @@ Ein intelligenter KI-Chatbot für die FH Südwestfalen (SWF), entwickelt mit Lan
 - **OpenAI GPT-4**: Sprachmodell
 - **Tavily Search**: Web-Suche auf der FH SWF Website
 - **LangChain**: Framework für LLM-Anwendungen
+- **Docker**: Containerisierung
+- **Kubernetes**: Orchestrierung
+- **UV**: Python Package Manager
 
 ## Projektstruktur
 ```
@@ -37,15 +41,23 @@ FH-SWiFty-Chatbot/
 │   ├── kustomization.yaml              # Kustomize-Konfiguration
 │   ├── secrets.yaml                     # K8s-Secrets
 │   └── service.yaml                     # K8s-Service
-└── fh-swifty-chatbot/                   # Haupt-Chatbot-Modul
-    ├── agent_langgraph_app.py          # Haupt-Chatbot-Anwendung
-    ├── main.py                         # Modul-Eingangspunkt
-    ├── helpers/                         # Hilfsfunktionen
-    │   ├── prompts.py                  # Prompt-Templates
-    │   └── tools.py                    # Web-Such-Tools
-    └── notebook/                        # Jupyter Notebooks
-        └── web_crawler/
-            └── urlLoader.ipynb         # Web-Crawler-Notebook
+├── fh-swifty-chatbot/                   # Haupt-Chatbot-Modul
+│   ├── agent_langgraph_app.py          # Haupt-Chatbot-Anwendung
+│   ├── main.py                         # Modul-Eingangspunkt
+│   ├── helpers/                         # Hilfsfunktionen
+│   │   ├── prompts.py                  # Prompt-Templates
+│   │   └── tools.py                    # Web-Such-Tools
+│   └── notebook/                        # Jupyter Notebooks
+│       └── web_crawler/
+│           └── urlLoader.ipynb         # Web-Crawler-Notebook
+            └── check_blacklist_openai_v1.ipynb   # Checkblacklist
+├── notebook/                            # Entwicklungs-Notebooks
+├── crawler/                             # Web-Crawler-Modul
+│   ├── crawl_fhswf.py                  # FH SWF Web-Crawler
+│   ├── pyproject.toml                  # Crawler-Konfiguration
+│   └── README.md                       # Crawler-Dokumentation
+└── data/                                # Datenverzeichnis
+    └── blacklist/                       # Blacklist-Daten
 ```
 
 ## Installation
@@ -56,11 +68,15 @@ FH-SWiFty-Chatbot/
 git clone <repository-url>
 cd FH-SWiFty-Chatbot
 
-# Abhängigkeiten installieren
-pip install -e .
+# Virtuelles Environment erstellen und Abhängigkeiten installieren
+uv venv
+uv sync
+
+# Environment aktivieren (Windows)
+.venv\Scripts\activate
 
 # Chainlit-Anwendung starten
-chainlit run fh-swifty-chatbot/agent_langgraph_app.py
+uv run chainlit run fh-swifty-chatbot/agent_langgraph_app.py
 ```
 
 ### Docker Installation
@@ -74,12 +90,37 @@ docker run -p 8000:8000 fh-swifty-chatbot
 ```
 
 ## Verwendung
+
+### Mit UV (Empfohlen)
+```bash
+# Environment aktivieren
+.venv\Scripts\activate  # Windows
+# oder
+source .venv/bin/activate  # Linux/Mac
+
+# Anwendung starten
+uv run chainlit run fh-swifty-chatbot/agent_langgraph_app.py
+```
+
+### Mit Python direkt
+```bash
+python -m chainlit run fh-swifty-chatbot/agent_langgraph_app.py
+```
+
 Nach dem Start ist der Chatbot über den Browser unter `http://localhost:8000` erreichbar.
 
 ## Konfiguration
 Der Chatbot benötigt folgende Umgebungsvariablen:
 - `OPENAI_API_KEY`: API-Schlüssel für OpenAI
 - `TAVILY_API_KEY`: API-Schlüssel für Tavily Search
+- `OPENAI_BASE_URL`: (Optional) Benutzerdefinierte OpenAI-URL
+- `HTTPS_PROXY`: (Optional) Proxy-Konfiguration
+- `LANGSMITH_API_KEY`: API-Schlüssel für LANGSMITH
+- `LANGSMITH_PROJECT`: ProjektName für LANGSMITH
+- `LANGSMITH_ENDPOINT`: "https://api.smith.langchain.com"
+- `LANGSMITH_TRACING`: "true"
+
+**Sicherheitshinweis**: Alle API-Schlüssel und Proxy-Konfigurationen sollten in einer `.env`-Datei gespeichert werden, die **nicht** ins Repository committed wird.
 
 ## Aktuelle Funktionen
 - ✅ Intelligente Gesprächsführung mit GPT-4
@@ -87,7 +128,39 @@ Der Chatbot benötigt folgende Umgebungsvariablen:
 - ✅ Reaktive Agent-Architektur mit LangGraph
 - ✅ Modernes Web-Interface mit Chainlit
 - ✅ Docker-Containerisierung
+- ✅ Kubernetes-Deployment
 - ✅ Automatische Informationsbeschaffung
+- ✅ Jupyter Notebook-Integration
+- ✅ Automatische Versionierung mit Semantic Release
+- ✅ Intelligente Inhaltsmoderation (Blacklist-System)
 
 ## Entwicklung
 Das Projekt verwendet die Python-Packaging-Struktur mit `pyproject.toml` und moderne LLM-Frameworks für eine skalierbare Chatbot-Architektur.
+
+### Entwicklungsumgebung einrichten
+```bash
+# Environment erstellen
+uv venv
+
+# Alle Abhängigkeiten installieren 
+uv sync
+
+# Environment aktivieren
+.venv\Scripts\activate  # Windows
+source .venv/bin/activate  # Linux/Mac
+
+# Development-Dependencies installieren
+uv sync --group notebook
+```
+
+### Nützliche UV-Befehle
+```bash
+# Abhängigkeiten aktualisieren
+uv sync --upgrade
+
+# Spezifische Gruppe installieren
+uv sync --group notebook
+
+# Anwendung im Environment ausführen
+uv run python main.py
+```

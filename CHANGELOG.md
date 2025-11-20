@@ -1,6 +1,120 @@
 # CHANGELOG
 
 
+## v0.10.0 (2025-11-13)
+
+### Features
+
+- New deploy triggre
+  ([`a3ba981`](https://github.com/fhswf/fh-swifty-chatbot/commit/a3ba981c5de340420182576f6ac1dbcda82dc65e))
+
+
+## v0.9.0 (2025-11-08)
+
+### Features
+
+- Add custom FH-SWF favicon to match branding
+  ([`504990d`](https://github.com/fhswf/fh-swifty-chatbot/commit/504990d7eed5178bc691d2c5644bb73c740832d0))
+
+
+## v0.8.0 (2025-10-26)
+
+### Features
+
+- Add initial module files and README for FH Swifty Chatbot and testing framework
+  ([`d9937d8`](https://github.com/fhswf/fh-swifty-chatbot/commit/d9937d8328f975fc3be7f231cdf68688018fe72b))
+
+- Add test script for blacklist system with simple and interactive modes
+  ([`26f580f`](https://github.com/fhswf/fh-swifty-chatbot/commit/26f580f9bbda513bbbcad348d2a4edf21bbffd8d))
+
+- Implement blacklist checking module and corresponding test script for prompt validation
+  ([`d38f351`](https://github.com/fhswf/fh-swifty-chatbot/commit/d38f3516f154c8b5b015e1a662b5ec5fb5ebeab6))
+
+
+## v0.7.0 (2025-10-23)
+
+### Features
+
+- Update user message autoscroll setting and rename assistant in UI
+  ([`293ee6b`](https://github.com/fhswf/fh-swifty-chatbot/commit/293ee6bdb84d38397235937b3cfb194ba950ac7f))
+
+
+## v0.6.0 (2025-10-23)
+
+### Features
+
+- Implement feedback and fallback mechanisms, including user feedback storage and mock replies
+  during service outages
+  ([`6f9cc5a`](https://github.com/fhswf/fh-swifty-chatbot/commit/6f9cc5a0cf76bec0ef29b7241ef1845a894f644c))
+
+- Update feedback handling and fallback responses, including user input storage and improved mock
+  replies
+  ([`52fc0e0`](https://github.com/fhswf/fh-swifty-chatbot/commit/52fc0e05d8a384cd7773bf63eaeb537d7f1c3349))
+
+
+## v0.5.0 (2025-10-10)
+
+### Chores
+
+- Update README to include new notebook and environment variable requirements, and enhance project
+  structure with additional modules
+  ([`a3d1e64`](https://github.com/fhswf/fh-swifty-chatbot/commit/a3d1e644716d31c5ddcb0dcd4052303f8db37be1))
+
+### Features
+
+- Enhance OpenAI API notebook with improved configuration validation and result analysis
+  ([`6fdecc9`](https://github.com/fhswf/fh-swifty-chatbot/commit/6fdecc900edbe61d6a642b210fc1ac95fbbae775))
+
+
+## v0.4.0 (2025-10-09)
+
+### Features
+
+- Add Jupyter notebook for OpenAI API blacklist checking functionality
+  ([`e97baa6`](https://github.com/fhswf/fh-swifty-chatbot/commit/e97baa66549a6e639a3c9f60a0a764af939de984))
+
+
+## v0.3.0 (2025-10-09)
+
+### Chores
+
+- Update README to reflect Python version requirement change from 3.7+ to 3.11+
+  ([`d6e27f4`](https://github.com/fhswf/fh-swifty-chatbot/commit/d6e27f4b2c2641c56d2fc9eba75f080285a1d9de))
+
+### Features
+
+- Add PostgreSQL, Neo4j, Qdrant, and MinIO services to docker-compose
+  ([`283c8dc`](https://github.com/fhswf/fh-swifty-chatbot/commit/283c8dc50d229b117a36ab871f866fc8005b232b))
+
+
+## v0.2.0 (2025-09-28)
+
+### Chores
+
+- Rename chatbot service to swifty-ui in docker-compose
+  ([`835aaa7`](https://github.com/fhswf/fh-swifty-chatbot/commit/835aaa7484df3f6038869ea38acb80e98d8f97e9))
+
+- Revert replicas
+  ([`8a2222d`](https://github.com/fhswf/fh-swifty-chatbot/commit/8a2222dae019200fe4a5ed0e933e2b4907b9b478))
+
+- Update licence
+  ([`c99814b`](https://github.com/fhswf/fh-swifty-chatbot/commit/c99814b3cb2f765c1dc5fb8b67ab2b1f7471e1fe))
+
+- Update readme for version 0.1.5, add last update date, and enhance technology stack details
+  ([`1530637`](https://github.com/fhswf/fh-swifty-chatbot/commit/153063735d08a887358d656796e57065cc3d4a12))
+
+- Update readme to include UV commands for environment setup and application execution
+  ([`12077ab`](https://github.com/fhswf/fh-swifty-chatbot/commit/12077ab25a8cb9b4317a1460709c7c04a6de4929))
+
+### Features
+
+- Implement crawler
+  ([`28ef553`](https://github.com/fhswf/fh-swifty-chatbot/commit/28ef55350f7aae767c9f5c0b82a913dcf3fce477))
+
+- Use http cache to download updates only
+  ([`9e0708b`](https://github.com/fhswf/fh-swifty-chatbot/commit/9e0708bc75643fa77c33306d16670afbe6c6a22c))
+
+
 ## v0.1.5 (2025-09-18)
 
 ### Bug Fixes
