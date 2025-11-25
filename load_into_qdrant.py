@@ -251,21 +251,21 @@ def main():
 
 
 if __name__ == "__main__":
-    # Beispiel: fest verdrahteter Testaufruf (bitte mit echten Werten ersetzen
-    # oder diesen Block entfernen und alles über CMD-Argumente steuern)
+   
     import sys
     sys.argv = [
         "load_into_qdrant.py",
         "--qdrant-url",
-        "https://bd57a360-2b9c-4262-893b-34b50d9c058a.eu-central-1-0.aws.cloud.qdrant.io",  # <--- ANPASSEN
+        "https://bd57a360-2b9c-4262-893b-34b50d9c058a.eu-central-1-0.aws.cloud.qdrant.io",  # 
         "--qdrant-api-key",
-        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3MiOiJtIn0.6CBvSFXnVaEMymgWfyOUL4LZShwqwgTrBJVYmrmxxPw",  # <--- ANPASSEN
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3MiOiJtIn0.6CBvSFXnVaEMymgWfyOUL4LZShwqwgTrBJVYmrmxxPw",  # 
         "--collection-name",
         "fh_rag_data",
         "--jsonl-path",
         r"C:\Users\liont\OneDrive\Documents\Datenvorbereitung\output.jsonl",
     ]
     main()
+
 
 
 
