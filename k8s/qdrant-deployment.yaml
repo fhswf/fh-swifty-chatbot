@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    io.kompose.service: qdrant
+  name: qdrant
+  namespace: fh-swifty-chatbot
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: qdrant
+  strategy:
+    type: RollingUpdate
+  revisionHistoryLimit: 5
+  template:
+    metadata:
+      labels:
+        io.kompose.service: qdrant
+    spec:
+      containers:
+        - image: qdrant/qdrant:v1.7.4
+          name: qdrant
+          ports:
+            - containerPort: 6333
+              name: http
+            - containerPort: 6334
+              name: grpc
+          env:
+            - name: QDRANT__SERVICE__HTTP_PORT
+              value: "6333"
+            - name: QDRANT__SERVICE__GRPC_PORT
+              value: "6334"
+          volumeMounts:
+            - name: qdrant-data
+              mountPath: /qdrant/storage
+          resources:
+            limits:
+              memory: 2Gi
+              cpu: 2000m
+            requests:
+              memory: 512Mi
+              cpu: 500m
+      volumes:
+        - name: qdrant-data
+          persistentVolumeClaim:
+            claimName: qdrant-data
+      restartPolicy: Always
+status: {}
+
