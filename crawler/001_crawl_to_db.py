@@ -25,7 +25,7 @@ import pymupdf4llm
 
 # --- Configuration ---
 load_dotenv()
-TARGET_PATH = os.getenv("TARGET_PATH", "").strip() or "./downloaded_v3"
+TARGET_PATH = os.getenv("TARGET_PATH", "").strip() or "./downloaded_v4"
 TARGET_PATH = os.path.abspath(TARGET_PATH)
 
 DB_PATH = os.getenv("DB_PATH", os.path.join(TARGET_PATH, "crawl_index.db"))
@@ -38,7 +38,7 @@ EXCLUDE_DOMAINS = os.getenv("EXCLUDE_DOMAINS", "").strip()
 EXCLUDE_DOMAINS_LIST = [d.strip() for d in EXCLUDE_DOMAINS.split(",") if d.strip()]
 
 # Neo4j Configuration
-NEO4J_URI = os.getenv("NEO4J_URI", "bolt://localhost:7687")
+NEO4J_URI = os.getenv("NEO4J_URI", "bolt://localhost:7689")
 NEO4J_USER = os.getenv("NEO4J_USER", "neo4j")
 NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD", "password123")
 NEO4J_ENABLED = os.getenv("NEO4J_ENABLED", "true").lower() in ["true", "1", "yes"]

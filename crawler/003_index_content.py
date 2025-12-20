@@ -20,19 +20,19 @@ from langchain_huggingface import HuggingFaceEmbeddings
 load_dotenv()
 
 # Neo4j Configuration
-NEO4J_URI = os.getenv("NEO4J_URI", "bolt://localhost:7688")
+NEO4J_URI = os.getenv("NEO4J_URI", "bolt://localhost:7689")
 NEO4J_USER = os.getenv("NEO4J_USER", "neo4j")
 NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD", "password123")
 
 # Configuration de l'embedding
 # Utilisation d'un modèle open source multilingue pour supporter l'allemand
-EMBEDDING_MODEL_NAME = os.getenv("EMBEDDING_MODEL_NAME", "sentence-transformers/all-MiniLM-L6-v2")
+EMBEDDING_MODEL_NAME = os.getenv("EMBEDDING_MODEL_NAME", "Qwen/Qwen3-Embedding-0.6B")
 EMBEDDING_MODEL_KWARGS = {"device": "cpu"}  # Utiliser "cuda" si GPU disponible
 EMBED_ENCODE_KWARGS = {"normalize_embeddings": True}  # Normaliser pour la similarité cosinus
 
 # Configuration de l'index vectoriel
-VECTOR_INDEX_NAME = os.getenv("VECTOR_INDEX_NAME", "content_vector_index")
-EMBEDDING_NODE_PROPERTY = "embedding"  # Nom de la propriété où stocker l'embedding
+VECTOR_INDEX_NAME = os.getenv("VECTOR_INDEX_NAME", "content_vector_qwen_index")
+EMBEDDING_NODE_PROPERTY = "embedding_qwen"  # Nom de la propriété où stocker l'embedding
 
 class ContentIndexer:
     """Gestionnaire pour indexer le contenu avec Neo4j Vector Index"""
@@ -118,6 +118,8 @@ class ContentIndexer:
                 username=NEO4J_USER,
                 password=NEO4J_PASSWORD,
                 index_name=VECTOR_INDEX_NAME,
+                keyword_index_name="keyword",
+                search_type="hybrid",
                 node_label="Content",
                 text_node_properties=["chunk_content"],  # Propriété à indexer
                 embedding_node_property=EMBEDDING_NODE_PROPERTY,  # Où stocker l'embedding

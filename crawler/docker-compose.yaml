@@ -18,6 +18,25 @@ services:
       - "7688:7687"  # Bolt
     environment:
       - NEO4J_AUTH=neo4j/password123
+      - NEO4J_apoc_export_file_enabled=true
+      - NEO4J_apoc_import_file_enabled=true
+      - NEO4J_apoc_import_file_use__neo4j__config=true
+      - NEO4J_PLUGINS=["apoc"]
     volumes:
       - ./downloaded_v2/neo4j_data:/data
+    restart: unless-stopped
+  neo4j-dev-2:
+    image: neo4j:5.26-community
+    container_name: fh-swifty-neo4j-dev-2
+    ports:
+      - "7476:7474"  # HTTP
+      - "7689:7687"  # Bolt
+    environment:
+      - NEO4J_AUTH=neo4j/password123
+      - NEO4J_apoc_export_file_enabled=true
+      - NEO4J_apoc_import_file_enabled=true
+      - NEO4J_apoc_import_file_use__neo4j__config=true
+      - NEO4J_PLUGINS=["apoc"]
+    volumes:
+      - ./downloaded_v4/neo4j_data:/data
     restart: unless-stopped

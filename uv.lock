@@ -768,10 +768,12 @@ dependencies = [
     { name = "dotenv" },
     { name = "html-to-markdown", extra = ["lxml"] },
     { name = "langchain" },
+    { name = "langchain-experimental" },
     { name = "langchain-huggingface" },
     { name = "neo4j" },
     { name = "pymupdf4llm" },
     { name = "scrapy" },
+    { name = "wikipedia" },
 ]
 
 [package.metadata]
@@ -781,10 +783,12 @@ requires-dist = [
     { name = "dotenv", specifier = ">=0.9.9" },
     { name = "html-to-markdown", extras = ["lxml"], specifier = ">=1.16.0" },
     { name = "langchain", specifier = ">=0.3.27" },
+    { name = "langchain-experimental", specifier = ">=0.3.4" },
     { name = "langchain-huggingface", specifier = ">=0.3.1" },
     { name = "neo4j", specifier = ">=5.14.0" },
     { name = "pymupdf4llm", specifier = ">=0.0.27" },
     { name = "scrapy", specifier = ">=2.13.3" },
+    { name = "wikipedia", specifier = ">=1.4.0" },
 ]
 
 [[package]]
@@ -2275,6 +2279,19 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/4f/4d/5e2ea7754ee0a1f524c412801c6ba9ad49318ecb58b0d524903c3d9efe0a/langchain_core-0.3.76.tar.gz", hash = "sha256:71136a122dd1abae2c289c5809d035cf12b5f2bb682d8a4c1078cd94feae7419", size = 573568, upload-time = "2025-09-10T14:49:39.863Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/77/b5/501c0ffcb09c734457ceaa86bc7b1dd37b6a261147bd653add03b838aacb/langchain_core-0.3.76-py3-none-any.whl", hash = "sha256:46e0eb48c7ac532432d51f8ca1ece1804c82afe9ae3dcf027b867edadf82b3ec", size = 447508, upload-time = "2025-09-10T14:49:38.179Z" },
+]
+
+[[package]]
+name = "langchain-experimental"
+version = "0.3.4"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "langchain-community" },
+    { name = "langchain-core" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/27/56/a8acbb08a03383c28875b3b151e4cefea5612266917fbd6fc3c14c21e172/langchain_experimental-0.3.4.tar.gz", hash = "sha256:937c4259ee4a639c618d19acf0e2c5c2898ef127050346edc5655259aa281a21", size = 140532, upload-time = "2024-12-20T15:16:09.42Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/b2/27/fe8caa4884611286b1f7d6c5cfd76e1fef188faaa946db4fde6daa1cd2cd/langchain_experimental-0.3.4-py3-none-any.whl", hash = "sha256:2e587306aea36b60fa5e5fc05dc7281bee9f60a806f0bf9d30916e0ee096af80", size = 209154, upload-time = "2024-12-20T15:16:07.006Z" },
 ]
 
 [[package]]
@@ -6780,6 +6797,16 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/1b/6c/c65773d6cab416a64d191d6ee8a8b1c68a09970ea6909d16965d26bfed1e/websockets-15.0.1-cp313-cp313-win_amd64.whl", hash = "sha256:e09473f095a819042ecb2ab9465aee615bd9c2028e4ef7d933600a8401c79561", size = 176837, upload-time = "2025-03-05T20:02:55.237Z" },
     { url = "https://files.pythonhosted.org/packages/fa/a8/5b41e0da817d64113292ab1f8247140aac61cbf6cfd085d6a0fa77f4984f/websockets-15.0.1-py3-none-any.whl", hash = "sha256:f7a866fbc1e97b5c617ee4116daaa09b722101d4a3c170c787450ba409f9736f", size = 169743, upload-time = "2025-03-05T20:03:39.41Z" },
 ]
+
+[[package]]
+name = "wikipedia"
+version = "1.4.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "beautifulsoup4" },
+    { name = "requests" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/67/35/25e68fbc99e672127cc6fbb14b8ec1ba3dfef035bf1e4c90f78f24a80b7d/wikipedia-1.4.0.tar.gz", hash = "sha256:db0fad1829fdd441b1852306e9856398204dc0786d2996dd2e0c8bb8e26133b2", size = 27748, upload-time = "2014-11-15T15:59:49.808Z" }
 
 [[package]]
 name = "win32-setctime"
