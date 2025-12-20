@@ -61,9 +61,9 @@ spec:
       paths:
       - backend:
           service:
-            name: neo4j
+            name: fh-swifty-chatbot
             port:
-              number: 7474
+              number: 80
         path: /
         pathType: Prefix
 ---
