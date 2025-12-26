@@ -4,5 +4,6 @@ uv.lock
 __pycache__
 *.egg-info
 downloaded/
+downloaded_v4/
 .cursor/
 neo4j_data/
