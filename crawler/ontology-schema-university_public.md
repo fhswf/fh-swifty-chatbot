@@ -560,7 +560,185 @@ Diese Ontologie definiert alle Knotentypen, Eigenschaften und Beziehungen für �
 - `fachbereich_id` (String): Referenz zum Fachbereich (optional)
 - `kontakt` (String): Kontaktinformationen
 
-### 1.14 Partner und Kooperationen (Partners and Cooperations)
+### 1.14 Finanzen (Finance - Public)
+
+#### 1.14.1 Semesterbeitrag (Semester Fee - Public)
+**Eigenschaften:**
+- `beitrag_id` (String, eindeutig): Identifikationsnummer
+- `name` (String): Name des Beitrags (z.B. "Semesterbeitrag Wintersemester 2024/25")
+- `betrag` (Float): Gesamtbetrag in Euro
+- `semester` (String): Wintersemester, Sommersemester
+- `jahr` (Integer): Jahr
+- `gueltig_ab` (Date): Gültig ab
+- `gueltig_bis` (Date): Gültig bis
+- `zahlungsfrist` (Date): Zahlungsfrist
+- `beschreibung` (Text): Beschreibung des Beitrags
+- `bestandteile` (JSON): Aufschlüsselung der Bestandteile
+  - `studierendenwerk` (Float): Beitrag für Studentenwerk
+  - `semesterticket` (Float): Semesterticket
+  - `verwaltung` (Float): Verwaltungsgebühr
+  - `asta` (Float): AStA-Beitrag
+  - `andere` (Float): Sonstige Beiträge
+- `reduktion_moeglich` (Boolean): Reduktion möglich
+- `befreiung_moeglich` (Boolean): Befreiung möglich
+- `befreiungsgruende` (Text): Gründe für Befreiung
+- `zahlungsmethoden` (Text): Akzeptierte Zahlungsmethoden
+- `kontakt_email` (String): Kontakt-E-Mail für Fragen
+- `kontakt_telefon` (String): Kontakt-Telefon
+- `website_url` (String): URL zu weiteren Informationen
+
+#### 1.14.2 Studiengebühr (Tuition Fee - Public)
+**Eigenschaften:**
+- `gebuehr_id` (String, eindeutig): Identifikationsnummer
+- `name` (String): Name der Gebühr
+- `betrag` (Float): Betrag in Euro
+- `studienform` (String): Vollzeit, Teilzeit, Fernstudium
+- `studiengang_id` (String): Referenz zum Studiengang (optional, wenn studiengangsspezifisch)
+- `semester` (String): Wintersemester, Sommersemester
+- `jahr` (Integer): Jahr
+- `gueltig_ab` (Date): Gültig ab
+- `gueltig_bis` (Date): Gültig bis
+- `zahlungsfrist` (Date): Zahlungsfrist
+- `beschreibung` (Text): Beschreibung
+- `reduktion_moeglich` (Boolean): Reduktion möglich
+- `befreiung_moeglich` (Boolean): Befreiung möglich
+- `stundung_moeglich` (Boolean): Stundung möglich
+- `zahlungsmethoden` (Text): Akzeptierte Zahlungsmethoden
+- `ratenzahlung` (Boolean): Ratenzahlung möglich
+- `ratenanzahl` (Integer): Anzahl der Raten (optional)
+- `kontakt_email` (String): Kontakt-E-Mail
+- `kontakt_telefon` (String): Kontakt-Telefon
+
+#### 1.14.3 Gebührenordnung (Fee Regulation - Public)
+**Eigenschaften:**
+- `ordnung_id` (String, eindeutig): Identifikationsnummer
+- `name` (String): Name der Gebührenordnung
+- `version` (String): Version
+- `gueltig_ab` (Date): Gültig ab
+- `gueltig_bis` (Date): Gültig bis (optional)
+- `beschreibung` (Text): Beschreibung
+- `pdf_url` (String): URL zum PDF-Dokument
+- `website_url` (String): URL zu weiteren Informationen
+- `aenderungen` (Text): Wichtige Änderungen
+- `kontakt_email` (String): Kontakt-E-Mail für Fragen
+
+#### 1.14.4 Gebührenbestandteil (Fee Component - Public)
+**Eigenschaften:**
+- `bestandteil_id` (String, eindeutig): Identifikationsnummer
+- `name` (String): Name des Bestandteils (z.B. "Studentenwerk", "Semesterticket", etc.)
+- `beschreibung` (Text): Beschreibung des Bestandteils
+- `betrag` (Float): Betrag in Euro
+- `pflicht` (Boolean): Pflichtbestandteil
+- `wahlweise` (Boolean): Wahlweise
+- `semester` (String): Wintersemester, Sommersemester
+- `jahr` (Integer): Jahr
+- `website_url` (String): URL zu weiteren Informationen
+- `kontakt` (String): Kontaktinformationen
+
+#### 1.14.5 Stipendium (Scholarship - Public)
+**Eigenschaften:**
+- `stipendium_id` (String, eindeutig): Identifikationsnummer
+- `name` (String): Name des Stipendiums
+- `geber` (String): Stipendiengeber (Hochschule, Stiftung, Unternehmen, etc.)
+- `typ` (String): Leistungsstipendium, Bedarfsstipendium, Studienabschlussstipendium, etc.
+- `beschreibung` (Text): Beschreibung
+- `betrag_monatlich` (Float): Monatlicher Betrag in Euro
+- `betrag_gesamt` (Float): Gesamtbetrag (optional)
+- `laufzeit_monate` (Integer): Laufzeit in Monaten
+- `verlaengerbar` (Boolean): Verlängerbar
+- `voraussetzungen` (Text): Voraussetzungen
+- `notendurchschnitt` (Float): Erforderlicher Notendurchschnitt (optional)
+- `einkommensgrenze` (Float): Einkommensgrenze (optional)
+- `studiengang_spezifisch` (Boolean): Studiengangsspezifisch
+- `studiengang_id` (String): Referenz zum Studiengang (optional)
+- `fachbereich_id` (String): Referenz zum Fachbereich (optional)
+- `bewerbungsfrist` (Date): Bewerbungsfrist
+- `bewerbungsverfahren` (Text): Bewerbungsverfahren
+- `dokumente_erforderlich` (Text): Erforderliche Dokumente
+- `kontakt_email` (String): Kontakt-E-Mail
+- `kontakt_telefon` (String): Kontakt-Telefon
+- `website_url` (String): URL zu weiteren Informationen
+- `bewerbung_url` (String): URL zur Bewerbung
+- `anzahl_verfuegbar` (Integer): Anzahl verfügbarer Stipendien (optional)
+
+#### 1.14.6 Finanzierungsmöglichkeit (Financing Option - Public)
+**Eigenschaften:**
+- `finanzierung_id` (String, eindeutig): Identifikationsnummer
+- `name` (String): Name der Finanzierungsmöglichkeit
+- `typ` (String): BAföG, KfW-Studienkredit, Bildungskredit, Stipendium, etc.
+- `beschreibung` (Text): Beschreibung
+- `voraussetzungen` (Text): Voraussetzungen
+- `betrag_max` (Float): Maximaler Betrag (optional)
+- `zins` (Float): Zinssatz (optional)
+- `rueckzahlung` (Text): Informationen zur Rückzahlung
+- `laufzeit` (Text): Laufzeit
+- `kontakt_email` (String): Kontakt-E-Mail
+- `kontakt_telefon` (String): Kontakt-Telefon
+- `website_url` (String): URL zu weiteren Informationen
+- `antrag_url` (String): URL zum Antrag
+- `beratung_verfuegbar` (Boolean): Beratung verfügbar
+
+#### 1.14.7 Zahlungsmethode (Payment Method - Public)
+**Eigenschaften:**
+- `zahlungsmethode_id` (String, eindeutig): Identifikationsnummer
+- `name` (String): Name der Zahlungsmethode (Überweisung, Lastschrift, Kreditkarte, etc.)
+- `beschreibung` (Text): Beschreibung
+- `verfuegbar_fuer` (Text): Verfügbar für (Semesterbeitrag, Studiengebühr, etc.)
+- `gebuehren` (Float): Zusätzliche Gebühren (0 wenn kostenlos)
+- `bearbeitungszeit` (String): Bearbeitungszeit
+- `anleitung_url` (String): URL zur Anleitung
+- `kontakt` (String): Kontakt bei Problemen
+
+#### 1.14.8 Rückerstattung (Refund - Public Information)
+**Eigenschaften:**
+- `rueckerstattung_id` (String, eindeutig): Identifikationsnummer
+- `name` (String): Name der Rückerstattungsregelung
+- `typ` (String): Semesterbeitrag, Studiengebühr, etc.
+- `beschreibung` (Text): Beschreibung der Rückerstattungsregelung
+- `voraussetzungen` (Text): Voraussetzungen für Rückerstattung
+- `frist` (Date): Frist für Antrag
+- `prozentsatz` (Float): Prozentsatz der Rückerstattung (0-100)
+- `antrag_erforderlich` (Boolean): Antrag erforderlich
+- `antrag_formular_url` (String): URL zum Antragsformular
+- `kontakt_email` (String): Kontakt-E-Mail
+- `kontakt_telefon` (String): Kontakt-Telefon
+- `bearbeitungszeit` (String): Bearbeitungszeit
+
+#### 1.14.9 Finanzberatung (Financial Counseling - Public)
+**Eigenschaften:**
+- `beratung_id` (String, eindeutig): Identifikationsnummer
+- `name` (String): Name der Beratungsstelle
+- `beschreibung` (Text): Beschreibung der Services
+- `adresse` (String): Adresse
+- `telefon` (String): Telefonnummer
+- `email` (String): E-Mail-Adresse
+- `website` (String): Website-URL
+- `sprechzeiten` (Text): Sprechzeiten
+- `anmeldung_erforderlich` (Boolean): Anmeldung erforderlich
+- `anmeldung_url` (String): URL zur Anmeldung
+- `online_beratung` (Boolean): Online-Beratung verfügbar
+- `themen` (Text): Beratungsthemen (BAföG, Stipendien, Studienkredit, etc.)
+- `hochschule_id` (String): Referenz zur Hochschule
+
+#### 1.14.10 Kostenübersicht (Cost Overview - Public)
+**Eigenschaften:**
+- `uebersicht_id` (String, eindeutig): Identifikationsnummer
+- `name` (String): Name der Übersicht (z.B. "Kostenübersicht Wintersemester 2024/25")
+- `semester` (String): Wintersemester, Sommersemester
+- `jahr` (Integer): Jahr
+- `studiengang_id` (String): Referenz zum Studiengang (optional)
+- `gesamtkosten` (Float): Gesamtkosten pro Semester
+- `aufschlüsselung` (JSON): Detaillierte Aufschlüsselung
+  - `semesterbeitrag` (Float)
+  - `studiengebuehr` (Float)
+  - `materialkosten` (Float)
+  - `lebenshaltungskosten` (Float)
+  - `andere` (Float)
+- `hinweise` (Text): Wichtige Hinweise
+- `aktualisiert_am` (Date): Letztes Update
+- `pdf_url` (String): URL zum PDF-Dokument
+
+### 1.15 Partner und Kooperationen (Partners and Cooperations)
 
 #### 1.14.1 Partnerorganisation (Partner Organization - Public)
 **Eigenschaften:**
@@ -692,7 +870,75 @@ Diese Ontologie definiert alle Knotentypen, Eigenschaften und Beziehungen für �
 - `BIETET_PROGRAMM` (Hochschule → Austauschprogramm)
   - Eigenschaften: `aktiv` (Boolean)
 
-### 2.10 News-Beziehungen
+### 2.10 Finanzbeziehungen
+
+- `ERHEBT` (Hochschule → Semesterbeitrag)
+  - Eigenschaften: `semester` (String), `jahr` (Integer)
+  
+- `BESTEHT_AUS` (Semesterbeitrag → Gebührenbestandteil)
+  - Eigenschaften: `betrag` (Float), `pflicht` (Boolean)
+  
+- `HAT_GEBUEHR` (Studiengang → Studiengebühr)
+  - Eigenschaften: `semester` (String), `jahr` (Integer)
+  
+- `REGELT` (Gebührenordnung → Semesterbeitrag)
+  - Eigenschaften: `version` (String), `gueltig_ab` (Date)
+  
+- `REGELT_GEBUEHR` (Gebührenordnung → Studiengebühr)
+  - Eigenschaften: `version` (String), `gueltig_ab` (Date)
+  
+- `BIETET_STIPENDIUM` (Hochschule → Stipendium)
+  - Eigenschaften: `aktiv` (Boolean), `anzahl_verfuegbar` (Integer)
+  
+- `IST_VERFUEGBAR_FUER` (Stipendium → Studiengang)
+  - Eigenschaften: `prioritaet` (String)
+  
+- `IST_VERFUEGBAR_FUER_FB` (Stipendium → Fachbereich)
+  - Eigenschaften: `prioritaet` (String)
+  
+- `BIETET_FINANZIERUNG` (Hochschule → Finanzierungsmöglichkeit)
+  - Eigenschaften: `empfohlen` (Boolean)
+  
+- `AKZEPTIERT` (Semesterbeitrag → Zahlungsmethode)
+  - Eigenschaften: `gebuehren` (Float)
+  
+- `AKZEPTIERT_GEBUEHR` (Studiengebühr → Zahlungsmethode)
+  - Eigenschaften: `gebuehren` (Float)
+  
+- `HAT_RUECKERSTATTUNG` (Semesterbeitrag → Rückerstattung)
+  - Eigenschaften: `prozentsatz` (Float), `frist` (Date)
+  
+- `HAT_RUECKERSTATTUNG_GEBUEHR` (Studiengebühr → Rückerstattung)
+  - Eigenschaften: `prozentsatz` (Float), `frist` (Date)
+  
+- `BIETET_BERATUNG` (Hochschule → Finanzberatung)
+  - Eigenschaften: `kostenlos` (Boolean)
+  
+- `BERATET_ZU` (Finanzberatung → Finanzierungsmöglichkeit)
+  - Eigenschaften: `schwerpunkt` (Boolean)
+  
+- `BERATET_STIPENDIEN` (Finanzberatung → Stipendium)
+  - Eigenschaften: `schwerpunkt` (Boolean)
+  
+- `HAT_KOSTENUEBERSICHT` (Hochschule → Kostenübersicht)
+  - Eigenschaften: `semester` (String), `jahr` (Integer)
+  
+- `HAT_KOSTENUEBERSICHT_STG` (Studiengang → Kostenübersicht)
+  - Eigenschaften: `semester` (String), `jahr` (Integer)
+  
+- `ENTHAELT` (Kostenübersicht → Semesterbeitrag)
+  - Eigenschaften: `betrag` (Float)
+  
+- `ENTHAELT_GEBUEHR` (Kostenübersicht → Studiengebühr)
+  - Eigenschaften: `betrag` (Float)
+  
+- `VERWEIST_AUF` (Semesterbeitrag → Gebührenordnung)
+  - Eigenschaften: `relevanz` (String)
+  
+- `VERWEIST_AUF_GEBUEHR` (Studiengebühr → Gebührenordnung)
+  - Eigenschaften: `relevanz` (String)
+
+### 2.11 News-Beziehungen
 
 - `BEZIEHT_SICH_AUF` (News-Artikel → Thema)
   - Eigenschaften: `relevanz` (String)
@@ -723,6 +969,10 @@ Diese Ontologie definiert alle Knotentypen, Eigenschaften und Beziehungen für �
 - `veranstaltung_id` muss eindeutig sein
 - `artikel_id` muss eindeutig sein
 - `faq_id` muss eindeutig sein
+- `beitrag_id` muss eindeutig sein
+- `gebuehr_id` muss eindeutig sein
+- `stipendium_id` muss eindeutig sein
+- `finanzierung_id` muss eindeutig sein
 
 ## 4. Chatbot-spezifische Eigenschaften
 
