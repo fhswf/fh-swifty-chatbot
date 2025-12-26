@@ -25,9 +25,9 @@ NEO4J_USER = os.getenv("NEO4J_USER", "neo4j")
 NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD", "password123")
 
 # Configuration du chunking
-MAX_CHUNK_SIZE = 5000
+MAX_CHUNK_SIZE = 8000
 CHUNK_OVERLAP = 500  # Chevauchement entre chunks pour préserver le contexte
-MIN_CONTENT_SIZE = 8000  # Seuil minimum pour diviser en chunks
+MIN_CONTENT_SIZE = 12000  # Seuil minimum pour diviser en chunks
 
 class ContentChunker:
     """Gestionnaire pour créer des chunks de contenu à partir des nœuds PDF et Page"""
