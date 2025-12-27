@@ -508,6 +508,31 @@ class Neo4jManager:
         except Exception as e:
             print(f"Erreur Neo4j create_redirect: {e}")
     
+    def create_page_has_pdf(self, page_url: str, pdf_url: str, link_text: str, link_type: str):
+        """
+        Crée une relation PAGE_HAS_PDF entre un nœud Page et un nœud PDF.
+        Crée le nœud PDF s'il n'existe pas encore.
+        """
+        if not self.driver:
+            return
+        
+        try:
+            with self.driver.session() as session:
+                session.run("""
+                    MATCH (page:Page {url: $page_url})
+                    MERGE (pdf:PDF {url: $pdf_url})
+                    MERGE (page)-[r:PAGE_HAS_PDF]->(pdf)
+                    SET r.link_text = $link_text,
+                        r.link_type = $link_type
+                """, {
+                    'page_url': page_url,
+                    'pdf_url': pdf_url,
+                    'link_text': link_text or "",
+                    'link_type': link_type
+                })
+        except Exception as e:
+            print(f"Erreur Neo4j create_page_has_pdf: {e}")
+    
     def get_stats(self) -> Dict[str, Any]:
         """Retourne les statistiques depuis Neo4j"""
         if not self.driver:
@@ -929,6 +954,32 @@ class FHSWFSQLiteSpider(scrapy.Spider):
                             link_type=link_type,
                             is_internal=is_internal
                         )
+                        
+                        # Si le lien pointe vers un PDF, créer la relation PAGE_HAS_PDF
+                        # Vérifier d'abord par l'extension, puis par le nœud target s'il existe
+                        is_pdf_link = abs_url.lower().endswith('.pdf')
+                        if not is_pdf_link:
+                            # Vérifier si le nœud target existe et est un PDF
+                            try:
+                                with self.neo4j.driver.session() as session:
+                                    result = session.run("""
+                                        MATCH (target:URL {url: $target_url})
+                                        RETURN target.is_pdf as is_pdf,
+                                               target.content_type as content_type
+                                    """, {'target_url': abs_url}).single()
+                                    if result:
+                                        is_pdf_link = (result.get('is_pdf') is True) or \
+                                                     ('application/pdf' in (result.get('content_type') or '').lower())
+                            except Exception:
+                                pass
+                        
+                        if is_pdf_link:
+                            self.neo4j.create_page_has_pdf(
+                                page_url=url,
+                                pdf_url=abs_url,
+                                link_text=link_text.strip() if link_text else None,
+                                link_type=link_type
+                            )
                     
                     # Suivre les liens internes
                     if is_internal:
