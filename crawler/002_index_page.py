@@ -26,7 +26,7 @@ NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD", "password123")
 
 # Configuration de l'embedding
 # Utilisation d'un modèle open source multilingue pour supporter l'allemand
-EMBEDDING_MODEL_NAME = os.getenv("EMBEDDING_MODEL_NAME", "Qwen/Qwen3-Embedding-0.6B")
+EMBEDDING_MODEL_NAME = os.getenv("EMBEDDING_MODEL_NAME", "Qwen/Qwen3-Embedding-0.6B" )#"sentence-transformers/all-MiniLM-L12-v2") #"Qwen/Qwen3-Embedding-0.6B")
 EMBEDDING_MODEL_KWARGS = {"device": "cpu"}  # Utiliser "cuda" si GPU disponible
 EMBED_ENCODE_KWARGS = {"normalize_embeddings": True}  # Normaliser pour la similarité cosinus
 
