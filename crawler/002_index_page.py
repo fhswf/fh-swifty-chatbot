@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-Script pour indexer le contenu des nœuds Content avec Neo4j Vector Index.
+Script pour indexer le contenu des nœuds Page avec Neo4j Vector Index.
 - Utilise un embedding open source (SentenceTransformers) au lieu d'OpenAI
-- Indexe la propriété chunk_content des nœuds Content
+- Indexe la propriété markdown_content des nœuds Page
 - Crée un index vectoriel pour la recherche de similarité
 """
 
@@ -31,11 +31,12 @@ EMBEDDING_MODEL_KWARGS = {"device": "cpu"}  # Utiliser "cuda" si GPU disponible
 EMBED_ENCODE_KWARGS = {"normalize_embeddings": True}  # Normaliser pour la similarité cosinus
 
 # Configuration de l'index vectoriel
-VECTOR_INDEX_NAME = os.getenv("VECTOR_INDEX_NAME", "content_vector_qwen_index")
+VECTOR_INDEX_NAME = os.getenv("VECTOR_INDEX_NAME", "page_vector_qwen_index")
+KEYWORD_INDEX_NAME = os.getenv("KEYWORD_INDEX_NAME", "page_keyword")  # Index de mots-clés spécifique aux Pages
 EMBEDDING_NODE_PROPERTY = "embedding_qwen"  # Nom de la propriété où stocker l'embedding
 
-class ContentIndexer:
-    """Gestionnaire pour indexer le contenu avec Neo4j Vector Index"""
+class PageIndexer:
+    """Gestionnaire pour indexer les pages avec Neo4j Vector Index"""
     
     def __init__(self, uri: str, user: str, password: str):
         self.driver = None
@@ -63,38 +64,38 @@ class ContentIndexer:
             print(f"❌ Erreur lors du chargement du modèle d'embedding: {e}")
             raise
     
-    def check_content_nodes(self) -> Dict[str, Any]:
-        """Vérifie les nœuds Content disponibles"""
+    def check_page_nodes(self) -> Dict[str, Any]:
+        """Vérifie les nœuds Page disponibles"""
         if not self.driver:
             return {}
         
         try:
             with self.driver.session() as session:
                 result = session.run("""
-                    MATCH (c:Content)
-                    WHERE c.chunk_content IS NOT NULL 
-                    AND c.chunk_content <> ""
+                    MATCH (p:Page)
+                    WHERE p.markdown_content IS NOT NULL 
+                    AND p.markdown_content <> ""
                     RETURN 
-                        count(c) as total_content_nodes,
-                        count(DISTINCT c.source_url) as total_sources,
-                        avg(size(c.chunk_content)) as avg_content_length,
-                        count(CASE WHEN c.embedding IS NOT NULL THEN 1 END) as already_indexed
+                        count(p) as total_page_nodes,
+                        count(DISTINCT p.url) as total_sources,
+                        avg(size(p.markdown_content)) as avg_content_length,
+                        count(CASE WHEN p.embedding_qwen IS NOT NULL THEN 1 END) as already_indexed
                 """)
                 record = result.single()
                 return {
-                    'total_content_nodes': record['total_content_nodes'],
+                    'total_page_nodes': record['total_page_nodes'],
                     'total_sources': record['total_sources'],
                     'avg_content_length': round(record['avg_content_length'], 2) if record['avg_content_length'] else 0,
                     'already_indexed': record['already_indexed']
                 }
         except Exception as e:
-            print(f"❌ Erreur lors de la vérification des nœuds Content: {e}")
+            print(f"❌ Erreur lors de la vérification des nœuds Page: {e}")
             return {}
     
-    def index_content(self) -> Dict[str, Any]:
+    def index_pages(self) -> Dict[str, Any]:
         """
-        Indexe le contenu des nœuds Content en utilisant Neo4jVector.from_existing_graph.
-        Cette méthode lit les nœuds Content existants, calcule les embeddings et les stocke.
+        Indexe le contenu des nœuds Page en utilisant Neo4jVector.from_existing_graph.
+        Cette méthode lit les nœuds Page existants, calcule les embeddings et les stocke.
         """
         if not self.driver or not self.embeddings:
             return {"indexed": 0, "errors": 0}
@@ -102,35 +103,36 @@ class ContentIndexer:
         stats = {"indexed": 0, "errors": 0}
         
         try:
-            print(f"🔍 Indexation des nœuds Content avec l'index: {VECTOR_INDEX_NAME}")
-            print(f"   Propriété de texte: chunk_content")
+            print(f"🔍 Indexation des nœuds Page avec l'index: {VECTOR_INDEX_NAME}")
+            print(f"   Propriété de texte: markdown_content")
             print(f"   Propriété d'embedding: {EMBEDDING_NODE_PROPERTY}")
             
-            # Utiliser from_existing_graph pour indexer les nœuds Content existants
+            # Utiliser from_existing_graph pour indexer les nœuds Page existants
             # Cette méthode:
-            # 1. Lit les nœuds Content avec chunk_content
-            # 2. Calcule les embeddings pour chaque chunk_content
+            # 1. Lit les nœuds Page avec markdown_content
+            # 2. Calcule les embeddings pour chaque markdown_content
             # 3. Stocke les embeddings dans la propriété embedding_node_property
             # 4. Crée un index vectoriel Neo4j
+            # Note: Utiliser un index de mots-clés spécifique pour éviter les conflits
             self.vector_store = Neo4jVector.from_existing_graph(
                 embedding=self.embeddings,
                 url=NEO4J_URI,
                 username=NEO4J_USER,
                 password=NEO4J_PASSWORD,
                 index_name=VECTOR_INDEX_NAME,
-                keyword_index_name="keyword",
+                keyword_index_name=KEYWORD_INDEX_NAME,  # Index de mots-clés spécifique aux Pages
                 search_type="hybrid",
-                node_label="Content",
-                text_node_properties=["chunk_content"],  # Propriété à indexer
+                node_label="Page",
+                text_node_properties=["markdown_content"],  # Propriété à indexer
                 embedding_node_property=EMBEDDING_NODE_PROPERTY,  # Où stocker l'embedding
             )
             
             # Vérifier combien de nœuds ont été indexés
-            content_stats = self.check_content_nodes()
-            stats["indexed"] = content_stats.get("already_indexed", 0)
+            page_stats = self.check_page_nodes()
+            stats["indexed"] = page_stats.get("already_indexed", 0)
             
             print(f"✓ Index vectoriel créé avec succès")
-            print(f"✓ {stats['indexed']} nœuds Content indexés")
+            print(f"✓ {stats['indexed']} nœuds Page indexés")
             
         except Exception as e:
             print(f"❌ Erreur lors de l'indexation: {e}")
@@ -188,14 +190,14 @@ class ContentIndexer:
                 index_info = index_check.single()
                 
                 # Statistiques des nœuds indexés
-                content_stats = self.check_content_nodes()
+                page_stats = self.check_page_nodes()
                 
                 return {
                     'index_name': index_info['name'] if index_info else None,
                     'index_type': index_info['type'] if index_info else None,
                     'index_state': index_info['state'] if index_info else None,
                     'population_percent': index_info['populationPercent'] if index_info else None,
-                    **content_stats
+                    **page_stats
                 }
         except Exception as e:
             print(f"❌ Erreur lors de la récupération des stats: {e}")
@@ -210,37 +212,37 @@ class ContentIndexer:
 def main():
     """Fonction principale"""
     print("=" * 70)
-    print("FH-SWF Content Indexer - Indexation vectorielle avec Neo4j")
+    print("FH-SWF Page Indexer - Indexation vectorielle avec Neo4j")
     print("=" * 70)
     print(f"Neo4j URI:           {NEO4J_URI}")
     print(f"Neo4j User:           {NEO4J_USER}")
     print(f"Modèle d'embedding:  {EMBEDDING_MODEL_NAME}")
     print(f"Index vectoriel:     {VECTOR_INDEX_NAME}")
-    print(f"Propriété texte:     chunk_content")
+    print(f"Propriété texte:     markdown_content")
     print(f"Propriété embedding: {EMBEDDING_NODE_PROPERTY}")
     print("=" * 70)
     
     try:
         # Initialiser l'indexeur
-        indexer = ContentIndexer(NEO4J_URI, NEO4J_USER, NEO4J_PASSWORD)
+        indexer = PageIndexer(NEO4J_URI, NEO4J_USER, NEO4J_PASSWORD)
         
-        # Vérifier les nœuds Content disponibles
-        print("\n📊 Vérification des nœuds Content...")
-        content_stats = indexer.check_content_nodes()
-        if content_stats:
-            print(f"✓ Nœuds Content disponibles: {content_stats.get('total_content_nodes', 0)}")
-            print(f"✓ Sources distinctes: {content_stats.get('total_sources', 0)}")
-            print(f"✓ Taille moyenne du contenu: {content_stats.get('avg_content_length', 0)} caractères")
-            print(f"✓ Déjà indexés: {content_stats.get('already_indexed', 0)}")
+        # Vérifier les nœuds Page disponibles
+        print("\n📊 Vérification des nœuds Page...")
+        page_stats = indexer.check_page_nodes()
+        if page_stats:
+            print(f"✓ Nœuds Page disponibles: {page_stats.get('total_page_nodes', 0)}")
+            print(f"✓ Sources distinctes: {page_stats.get('total_sources', 0)}")
+            print(f"✓ Taille moyenne du contenu: {page_stats.get('avg_content_length', 0)} caractères")
+            print(f"✓ Déjà indexés: {page_stats.get('already_indexed', 0)}")
         
-        if content_stats.get('total_content_nodes', 0) == 0:
-            print("\n⚠️  Aucun nœud Content trouvé. Exécutez d'abord 002_create_content.py")
+        if page_stats.get('total_page_nodes', 0) == 0:
+            print("\n⚠️  Aucun nœud Page trouvé. Exécutez d'abord 001_crawl_to_db.py")
             indexer.close()
             return 1
         
-        # Indexer le contenu
-        print("\n🔍 Indexation du contenu...")
-        index_stats = indexer.index_content()
+        # Indexer les pages
+        print("\n🔍 Indexation des pages...")
+        index_stats = indexer.index_pages()
         
         if index_stats.get("errors", 0) > 0:
             print(f"❌ Erreurs lors de l'indexation: {index_stats['errors']}")
@@ -261,7 +263,7 @@ def main():
                 if index_stats_final.get('population_percent') is not None:
                     print(f"Population:            {index_stats_final.get('population_percent')}%")
             print(f"Nœuds indexés:          {index_stats_final.get('already_indexed', 0)}")
-            print(f"Total nœuds Content:     {index_stats_final.get('total_content_nodes', 0)}")
+            print(f"Total nœuds Page:       {index_stats_final.get('total_page_nodes', 0)}")
             print(f"Sources distinctes:     {index_stats_final.get('total_sources', 0)}")
         
         # Test de recherche de similarité
