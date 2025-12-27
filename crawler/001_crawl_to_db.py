@@ -381,12 +381,31 @@ class Neo4jManager:
     
     def create_link(self, source_url: str, target_url: str, link_text: str,
                    link_type: str, is_internal: bool):
-        """Crée une relation LINKS_TO entre deux URLs"""
+        """Crée une relation LINKS_TO entre deux URLs avec les propriétés link_to_redirect et link_to_pdf"""
         if not self.driver:
             return
         
         try:
             with self.driver.session() as session:
+                # Récupérer les propriétés du nœud target s'il existe
+                target_info = session.run("""
+                    MATCH (target:URL {url: $target_url})
+                    RETURN target.status_code as status_code, 
+                           target.content_type as content_type
+                """, {'target_url': target_url}).single()
+                
+                # Déterminer link_to_redirect (true si status_code = 302)
+                link_to_redirect = False
+                if target_info and target_info.get('status_code') == 302:
+                    link_to_redirect = True
+                
+                # Déterminer link_to_pdf (true si content_type contient application/pdf)
+                link_to_pdf = False
+                if target_info and target_info.get('content_type'):
+                    content_type = target_info.get('content_type', '').lower()
+                    if 'application/pdf' in content_type:
+                        link_to_pdf = True
+                
                 # Créer les nœuds URL si nécessaire et la relation
                 session.run("""
                     MERGE (source:URL {url: $source_url})
@@ -397,13 +416,17 @@ class Neo4jManager:
                     SET r.link_text = $link_text,
                         r.link_type = $link_type,
                         r.is_internal = $is_internal,
+                        r.link_to_redirect = $link_to_redirect,
+                        r.link_to_pdf = $link_to_pdf,
                         r.discovered_at = coalesce(r.discovered_at, datetime())
                 """, {
                     'source_url': source_url,
                     'target_url': target_url,
                     'link_text': link_text or "",
                     'link_type': link_type,
-                    'is_internal': is_internal
+                    'is_internal': is_internal,
+                    'link_to_redirect': link_to_redirect,
+                    'link_to_pdf': link_to_pdf
                 })
         except Exception as e:
             print(f"Erreur Neo4j create_link: {e}")
@@ -607,6 +630,44 @@ def html_to_markdown(file_path: str) -> str:
         markdown_content = f"Error converting HTML to markdown: {e}"
     return markdown_content
 
+def extract_link_text(response: TextResponse, link_element) -> Optional[str]:
+    """
+    Extrait le texte d'un lien de manière robuste.
+    Essaie plusieurs stratégies:
+    1. Texte dans span.link__text ou span[class*="link__text"]
+    2. Texte direct du lien (//a/text())
+    3. Attribut title ou aria-label
+    4. Texte de tous les descendants (string())
+    """
+    if not link_element:
+        return None
+    
+    # Stratégie 1: Chercher dans span.link__text ou span avec classe contenant "link__text"
+    link_text = link_element.xpath('.//span[contains(@class, "link__text")]//text()').get()
+    if link_text and link_text.strip():
+        return link_text.strip()
+    
+    # Stratégie 2: Texte direct du lien
+    link_text = link_element.xpath('.//text()').get()
+    if link_text and link_text.strip():
+        return link_text.strip()
+    
+    # Stratégie 3: Utiliser string() pour obtenir tout le texte des descendants
+    link_text = link_element.xpath('string(.)').get()
+    if link_text and link_text.strip():
+        return link_text.strip()
+    
+    # Stratégie 4: Attributs title ou aria-label
+    link_text = link_element.xpath('./@title').get()
+    if link_text and link_text.strip():
+        return link_text.strip()
+    
+    link_text = link_element.xpath('./@aria-label').get()
+    if link_text and link_text.strip():
+        return link_text.strip()
+    
+    return None
+
 # --- Spider ---
 class FHSWFSQLiteSpider(scrapy.Spider):
     name = "fhswf_sqlite"
@@ -806,20 +867,20 @@ class FHSWFSQLiteSpider(scrapy.Spider):
             
             # Extraire et enregistrer tous les liens
             selectors = {
-                "a": ("//a/@href", "//a/text()"),
-                "link": ("//link/@href", None),
-                "img": ("//img/@src", "//img/@alt"),
-                "script": ("//script/@src", None),
-                "iframe": ("//iframe/@src", None),
-                "source": ("//source/@src", None),
+                "a": ("//a", "@href"),  # Pour les liens <a>, on récupère l'élément complet
+                "link": ("//link", "@href"),
+                "img": ("//img", "@src"),
+                "script": ("//script", "@src"),
+                "iframe": ("//iframe", "@src"),
+                "source": ("//source", "@src"),
             }
             
             seen_links = set()
-            for link_type, (href_xpath, text_xpath) in selectors.items():
-                hrefs = response.xpath(href_xpath).getall()
-                texts = response.xpath(text_xpath).getall() if text_xpath else [None] * len(hrefs)
+            for link_type, (element_xpath, href_attr) in selectors.items():
+                elements = response.xpath(element_xpath)
                 
-                for href, link_text in zip(hrefs, texts):
+                for element in elements:
+                    href = element.xpath(f'./{href_attr}').get()
                     if not href or href.strip() == "":
                         continue
                     
@@ -840,6 +901,14 @@ class FHSWFSQLiteSpider(scrapy.Spider):
                     # Skip /intern/
                     if "/intern/" in abs_url:
                         continue
+                    
+                    # Extraire le texte du lien de manière robuste
+                    if link_type == "a":
+                        link_text = extract_link_text(response, element)
+                    elif link_type == "img":
+                        link_text = element.xpath('./@alt').get()
+                    else:
+                        link_text = None
                     
                     # Enregistrer le lien dans SQLite
                     is_internal = self._is_internal_and_allowed(abs_url)
