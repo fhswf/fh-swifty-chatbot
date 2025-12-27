@@ -26,14 +26,14 @@ NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD", "password123")
 
 # Configuration de l'embedding
 # Utilisation d'un modèle open source multilingue pour supporter l'allemand
-EMBEDDING_MODEL_NAME = os.getenv("EMBEDDING_MODEL_NAME", "Qwen/Qwen3-Embedding-0.6B" )#"sentence-transformers/all-MiniLM-L12-v2") #"Qwen/Qwen3-Embedding-0.6B")
+EMBEDDING_MODEL_NAME = os.getenv("EMBEDDING_MODEL_NAME", "intfloat/multilingual-e5-small" )#"sentence-transformers/all-MiniLM-L12-v2") #"Qwen/Qwen3-Embedding-0.6B")
 EMBEDDING_MODEL_KWARGS = {"device": "cpu"}  # Utiliser "cuda" si GPU disponible
 EMBED_ENCODE_KWARGS = {"normalize_embeddings": True}  # Normaliser pour la similarité cosinus
 
 # Configuration de l'index vectoriel
 VECTOR_INDEX_NAME = os.getenv("VECTOR_INDEX_NAME", "page_vector_qwen_index")
 KEYWORD_INDEX_NAME = os.getenv("KEYWORD_INDEX_NAME", "page_keyword")  # Index de mots-clés spécifique aux Pages
-EMBEDDING_NODE_PROPERTY = "embedding_qwen"  # Nom de la propriété où stocker l'embedding
+EMBEDDING_NODE_PROPERTY = "embedding_e5"  # Nom de la propriété où stocker l'embedding
 
 class PageIndexer:
     """Gestionnaire pour indexer les pages avec Neo4j Vector Index"""
