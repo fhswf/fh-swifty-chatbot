@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-Script pour rechercher du contenu dans Neo4j Vector Index.
+Script pour rechercher dans les nœuds Page avec Neo4j Vector Index.
 - Permet à l'utilisateur d'entrer une requête
-- Retourne les 20 documents les plus similaires via la recherche vectorielle
+- Retourne les 20 pages les plus similaires via la recherche vectorielle
 - Affiche les résultats avec les métadonnées et scores de similarité
 """
 
@@ -15,35 +15,30 @@ from neo4j import GraphDatabase
 
 # LangChain imports
 from langchain_neo4j import Neo4jVector
-try:
-    # Try langchain_community first (newer versions)
-    from langchain_community.embeddings import HuggingFaceEmbeddings
-except ImportError:
-    # Fallback to langchain.embeddings (older versions)
-    from langchain.embeddings import HuggingFaceEmbeddings
+from langchain_huggingface import HuggingFaceEmbeddings
 
 # --- Configuration ---
 load_dotenv()
 
 # Neo4j Configuration
-NEO4J_URI = os.getenv("NEO4J_URI", "bolt://localhost:7688")
+NEO4J_URI = os.getenv("NEO4J_URI", "bolt://localhost:7689")
 NEO4J_USER = os.getenv("NEO4J_USER", "neo4j")
 NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD", "password123")
 
-# Configuration de l'embedding (doit correspondre à celle utilisée dans 003_index_content.py)
+# Configuration de l'embedding (doit correspondre à celle utilisée dans 002_index_page.py)
 EMBEDDING_MODEL_NAME = os.getenv("EMBEDDING_MODEL_NAME", "intfloat/multilingual-e5-small")
 EMBEDDING_MODEL_KWARGS = {"device": "cpu"}  # Utiliser "cuda" si GPU disponible
 EMBED_ENCODE_KWARGS = {"normalize_embeddings": True}  # Normaliser pour la similarité cosinus
 
-# Configuration de l'index vectoriel
-VECTOR_INDEX_NAME = os.getenv("VECTOR_INDEX_NAME", "content_vector_index")
-EMBEDDING_NODE_PROPERTY = "embedding"  # Nom de la propriété où l'embedding est stocké
+# Configuration de l'index vectoriel (doit correspondre à 002_index_page.py)
+VECTOR_INDEX_NAME = os.getenv("VECTOR_INDEX_NAME", "page_vector_qwen_index")
+EMBEDDING_NODE_PROPERTY = "embedding_e5"  # Nom de la propriété où l'embedding est stocké
 
 # Nombre de résultats par défaut
 DEFAULT_K = 20
 
-class ContentSearcher:
-    """Gestionnaire pour rechercher du contenu avec Neo4j Vector Index"""
+class PageSearcher:
+    """Gestionnaire pour rechercher dans les nœuds Page avec Neo4j Vector Index"""
     
     def __init__(self, uri: str, user: str, password: str):
         self.driver = None
@@ -74,12 +69,12 @@ class ContentSearcher:
         # Charger l'index vectoriel existant
         try:
             print(f"🔍 Chargement de l'index vectoriel: {VECTOR_INDEX_NAME}")
-            # Spécifier text_node_property="chunk_content" car nos nœuds Content utilisent
-            # chunk_content au lieu de "text" par défaut
-            # Utiliser une retrieval_query personnalisée pour mapper chunk_content vers text
+            # Spécifier text_node_property="markdown_content" car nos nœuds Page utilisent
+            # markdown_content au lieu de "text" par défaut
+            # Utiliser une retrieval_query personnalisée pour mapper markdown_content vers text
             retrieval_query = """
-            RETURN node.chunk_content AS text, score, 
-                   node {.*, chunk_content: Null, embedding: Null, id: Null} AS metadata
+            RETURN node.markdown_content AS text, score, 
+                   node {.*, markdown_content: Null, embedding_e5: Null, id: Null} AS metadata
             """
             self.vector_store = Neo4jVector.from_existing_index(
                 embedding=self.embeddings,
@@ -87,15 +82,15 @@ class ContentSearcher:
                 username=user,
                 password=password,
                 index_name=VECTOR_INDEX_NAME,
-                node_label="Content",
-                text_node_property="chunk_content",  # Utiliser chunk_content au lieu de text
+                node_label="Page",
+                text_node_property="markdown_content",  # Utiliser markdown_content au lieu de text
                 embedding_node_property=EMBEDDING_NODE_PROPERTY,
-                retrieval_query=retrieval_query,  # Requête personnalisée pour mapper chunk_content
+                retrieval_query=retrieval_query,  # Requête personnalisée pour mapper markdown_content
             )
             print(f"✓ Index vectoriel chargé avec succès")
         except Exception as e:
             print(f"❌ Erreur lors du chargement de l'index: {e}")
-            print(f"   Assurez-vous d'avoir exécuté 003_index_content.py au préalable")
+            print(f"   Assurez-vous d'avoir exécuté 002_index_page.py au préalable")
             raise
     
     def search(self, query: str, k: int = DEFAULT_K) -> List[Dict[str, Any]]:
@@ -125,22 +120,22 @@ class ContentSearcher:
                 # Extraire le contenu
                 content = doc.page_content if hasattr(doc, 'page_content') else str(doc)
                 
-                # Extraire les propriétés des nœuds Content depuis les métadonnées
+                # Extraire les propriétés des nœuds Page depuis les métadonnées
                 # Les métadonnées peuvent contenir les propriétés du nœud Neo4j
-                source_url = metadata.get('source_url') or metadata.get('url') or 'N/A'
-                content_type = metadata.get('content_type') or 'N/A'
-                chunk_order = metadata.get('chunk_order') or 'N/A'
-                source_title = metadata.get('source_title') or metadata.get('title') or 'N/A'
+                url = metadata.get('url') or 'N/A'
+                title = metadata.get('title') or 'N/A'
+                meta_description = metadata.get('meta_description') or 'N/A'
+                updated_at = metadata.get('updated_at') or 'N/A'
                 
                 result = {
                     'rank': i,
                     'score': float(score),
                     'content': content,
                     'metadata': metadata,
-                    'source_url': source_url,
-                    'content_type': content_type,
-                    'chunk_order': chunk_order,
-                    'source_title': source_title,
+                    'url': url,
+                    'title': title,
+                    'meta_description': meta_description,
+                    'updated_at': updated_at,
                 }
                 formatted_results.append(result)
             
@@ -167,13 +162,14 @@ class ContentSearcher:
             print(f"\n{'─' * 80}")
             print(f"📄 Résultat #{result['rank']} (Score: {result['score']:.4f})")
             print(f"{'─' * 80}")
-            print(f"📍 Source: {result['source_url']}")
-            print(f"📑 Type: {result['content_type']}")
-            if result['source_title'] != 'N/A':
-                print(f"📝 Titre: {result['source_title']}")
-            if result['chunk_order'] != 'N/A':
-                print(f"🔢 Chunk #{result['chunk_order']}")
-            print(f"\n📄 Contenu:")
+            print(f"📍 URL: {result['url']}")
+            if result['title'] != 'N/A':
+                print(f"📝 Titre: {result['title']}")
+            if result['meta_description'] != 'N/A':
+                print(f"📋 Description: {result['meta_description'][:200]}..." if len(result['meta_description']) > 200 else f"📋 Description: {result['meta_description']}")
+            if result['updated_at'] != 'N/A':
+                print(f"🕒 Mis à jour: {result['updated_at']}")
+            print(f"\n📄 Contenu (markdown):")
             print(f"{'─' * 80}")
             
             # Afficher le contenu avec une limite de caractères
@@ -188,7 +184,7 @@ class ContentSearcher:
             # Afficher les métadonnées supplémentaires si disponibles
             if result['metadata']:
                 other_metadata = {k: v for k, v in result['metadata'].items() 
-                                if k not in ['source_url', 'content_type', 'chunk_order', 'source_title']}
+                                if k not in ['url', 'title', 'meta_description', 'updated_at', 'markdown_content', 'embedding_e5', 'text_content']}
                 if other_metadata:
                     print(f"\n📋 Métadonnées supplémentaires: {other_metadata}")
         
@@ -246,7 +242,7 @@ class ContentSearcher:
 def main():
     """Fonction principale"""
     print("=" * 80)
-    print("FH-SWF Content Searcher - Recherche vectorielle")
+    print("FH-SWF Page Searcher - Recherche vectorielle dans les Pages")
     print("=" * 80)
     print(f"Neo4j URI:           {NEO4J_URI}")
     print(f"Neo4j User:          {NEO4J_USER}")
@@ -257,7 +253,7 @@ def main():
     
     try:
         # Initialiser le chercheur
-        searcher = ContentSearcher(NEO4J_URI, NEO4J_USER, NEO4J_PASSWORD)
+        searcher = PageSearcher(NEO4J_URI, NEO4J_USER, NEO4J_PASSWORD)
         
         # Vérifier si une requête est fournie en argument
         if len(sys.argv) > 1:

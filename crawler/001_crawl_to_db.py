@@ -835,6 +835,7 @@ class FHSWFSQLiteSpider(scrapy.Spider):
                 markdown_content = f"Error converting PDF to markdown: {e}"
                 self.logger.error(f"Error converting PDF to markdown: {e}")
 
+
             # SQLite
             self.db.insert_pdf(
                 url_id=url_id,

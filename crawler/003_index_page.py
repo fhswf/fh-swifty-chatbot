@@ -2,7 +2,7 @@
 """
 Script pour indexer le contenu des nœuds Page avec Neo4j Vector Index.
 - Utilise un embedding open source (SentenceTransformers) au lieu d'OpenAI
-- Indexe la propriété markdown_content des nœuds Page
+- Indexe la propriété TEXT_NODE_PROPERTY des nœuds Page
 - Crée un index vectoriel pour la recherche de similarité
 """
 
@@ -26,14 +26,15 @@ NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD", "password123")
 
 # Configuration de l'embedding
 # Utilisation d'un modèle open source multilingue pour supporter l'allemand
-EMBEDDING_MODEL_NAME = os.getenv("EMBEDDING_MODEL_NAME", "intfloat/multilingual-e5-small" )#"sentence-transformers/all-MiniLM-L12-v2") #"Qwen/Qwen3-Embedding-0.6B")
+EMBEDDING_MODEL_NAME = os.getenv("EMBEDDING_MODEL_NAME","Qwen/Qwen3-Embedding-0.6B") #"intfloat/multilingual-e5-small" )#"sentence-transformers/all-MiniLM-L12-v2") #"Qwen/Qwen3-Embedding-0.6B")
 EMBEDDING_MODEL_KWARGS = {"device": "cpu"}  # Utiliser "cuda" si GPU disponible
 EMBED_ENCODE_KWARGS = {"normalize_embeddings": True}  # Normaliser pour la similarité cosinus
 
 # Configuration de l'index vectoriel
-VECTOR_INDEX_NAME = os.getenv("VECTOR_INDEX_NAME", "page_vector_qwen_index")
-KEYWORD_INDEX_NAME = os.getenv("KEYWORD_INDEX_NAME", "page_keyword")  # Index de mots-clés spécifique aux Pages
-EMBEDDING_NODE_PROPERTY = "embedding_e5"  # Nom de la propriété où stocker l'embedding
+VECTOR_INDEX_NAME = os.getenv("VECTOR_INDEX_NAME", "page_vector_qwen_index_title")
+KEYWORD_INDEX_NAME = os.getenv("KEYWORD_INDEX_NAME", "page_keyword_title")  # Index de mots-clés spécifique aux Pages
+EMBEDDING_NODE_PROPERTY = "embedding_qwen_title"  # Nom de la propriété où stocker l'embedding
+TEXT_NODE_PROPERTY = "title"  # Propriété à indexer
 
 class PageIndexer:
     """Gestionnaire pour indexer les pages avec Neo4j Vector Index"""
@@ -71,15 +72,15 @@ class PageIndexer:
         
         try:
             with self.driver.session() as session:
-                result = session.run("""
+                result = session.run(f"""
                     MATCH (p:Page)
-                    WHERE p.markdown_content IS NOT NULL 
-                    AND p.markdown_content <> ""
+                    WHERE p.{TEXT_NODE_PROPERTY} IS NOT NULL 
+                    AND p.{TEXT_NODE_PROPERTY} <> ""
                     RETURN 
                         count(p) as total_page_nodes,
                         count(DISTINCT p.url) as total_sources,
-                        avg(size(p.markdown_content)) as avg_content_length,
-                        count(CASE WHEN p.embedding_qwen IS NOT NULL THEN 1 END) as already_indexed
+                        avg(size(p.{TEXT_NODE_PROPERTY})) as avg_content_length,
+                        count(CASE WHEN p.{EMBEDDING_NODE_PROPERTY} IS NOT NULL THEN 1 END) as already_indexed
                 """)
                 record = result.single()
                 return {
@@ -104,13 +105,13 @@ class PageIndexer:
         
         try:
             print(f"🔍 Indexation des nœuds Page avec l'index: {VECTOR_INDEX_NAME}")
-            print(f"   Propriété de texte: markdown_content")
+            print(f"   Propriété de texte: {TEXT_NODE_PROPERTY}")
             print(f"   Propriété d'embedding: {EMBEDDING_NODE_PROPERTY}")
             
             # Utiliser from_existing_graph pour indexer les nœuds Page existants
             # Cette méthode:
-            # 1. Lit les nœuds Page avec markdown_content
-            # 2. Calcule les embeddings pour chaque markdown_content
+            # 1. Lit les nœuds Page avec TEXT_NODE_PROPERTY
+            # 2. Calcule les embeddings pour chaque TEXT_NODE_PROPERTY
             # 3. Stocke les embeddings dans la propriété embedding_node_property
             # 4. Crée un index vectoriel Neo4j
             # Note: Utiliser un index de mots-clés spécifique pour éviter les conflits
@@ -123,7 +124,7 @@ class PageIndexer:
                 keyword_index_name=KEYWORD_INDEX_NAME,  # Index de mots-clés spécifique aux Pages
                 search_type="hybrid",
                 node_label="Page",
-                text_node_properties=["markdown_content"],  # Propriété à indexer
+                text_node_properties=[TEXT_NODE_PROPERTY],  # Propriété à indexer
                 embedding_node_property=EMBEDDING_NODE_PROPERTY,  # Où stocker l'embedding
             )
             
@@ -218,7 +219,7 @@ def main():
     print(f"Neo4j User:           {NEO4J_USER}")
     print(f"Modèle d'embedding:  {EMBEDDING_MODEL_NAME}")
     print(f"Index vectoriel:     {VECTOR_INDEX_NAME}")
-    print(f"Propriété texte:     markdown_content")
+    print(f"Propriété texte:     {TEXT_NODE_PROPERTY}")
     print(f"Propriété embedding: {EMBEDDING_NODE_PROPERTY}")
     print("=" * 70)
     
