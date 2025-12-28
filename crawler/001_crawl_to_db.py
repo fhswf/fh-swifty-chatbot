@@ -511,19 +511,21 @@ class Neo4jManager:
     def create_page_has_pdf(self, page_url: str, pdf_url: str, link_text: str, link_type: str):
         """
         Crée une relation PAGE_HAS_PDF entre un nœud Page et un nœud PDF.
-        Ne crée la relation QUE si le nœud PDF existe déjà (a été crawlé).
-        Ne crée PAS le nœud PDF s'il n'existe pas encore.
+        Crée ou met à jour le nœud PDF s'il n'existe pas encore.
+        Si le PDF existe déjà, ses propriétés ne sont pas modifiées.
         """
         if not self.driver:
             return
         
         try:
             with self.driver.session() as session:
-                # MATCH vérifie que le nœud PDF existe déjà
-                # Si le PDF n'existe pas, la relation ne sera pas créée
+                # MERGE crée le nœud PDF s'il n'existe pas, ou le trouve s'il existe
+                # ON CREATE définit uniquement l'URL lors de la création
+                # ON MATCH ne fait rien, donc les propriétés existantes ne sont pas modifiées
                 session.run("""
                     MATCH (page:Page {url: $page_url})
-                    MATCH (pdf:PDF {url: $pdf_url})
+                    MERGE (pdf:PDF {url: $pdf_url})
+                    ON CREATE SET pdf.url = $pdf_url
                     MERGE (page)-[r:PAGE_HAS_PDF]->(pdf)
                     SET r.link_text = $link_text,
                         r.link_type = $link_type
@@ -534,9 +536,7 @@ class Neo4jManager:
                     'link_type': link_type
                 })
         except Exception as e:
-            # Si le PDF n'existe pas, MATCH ne trouvera rien et la requête échouera silencieusement
-            # C'est le comportement attendu - on ne crée la relation que si le PDF existe
-            pass
+            print(f"Erreur Neo4j create_page_has_pdf: {e}")
     
     def get_stats(self) -> Dict[str, Any]:
         """Retourne les statistiques depuis Neo4j"""
