@@ -2,14 +2,10 @@
 """
 mcp_server.py
 
-HTTP MCP-style wrapper for rag_tool_kg_entity_edges.py
+MCP server wrapper for rag_tool_kg_entity_edges.py using FastMCP.
 
-Endpoints:
-  GET  /health
-  POST /mcp/rag/ask
-
-Run (local):
-  uvicorn mcp_server:app --host 127.0.0.1 --port 8080
+Tool:
+  - rag_ask(question: str) -> dict
 
 Env vars required:
   OPENAI_API_KEY
@@ -30,31 +26,15 @@ Optional:
 """
 
 import os
-from typing import Optional, Dict, Any
+from typing import Any, Dict
 
-from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-
-# IMPORTANT:
-# Make sure rag_tool_kg_entity_edges.py is in the same folder as this file
-# and contains rag_answer(question: str) -> Dict[str, Any]
+# Your existing RAG function
 from rag_tool_kg_entity_edges import rag_answer
 
+# FastMCP (the MCP framework)
+from fastmcp import FastMCP
 
-class AskRequest(BaseModel):
-    question: str
-    # Optional override flags per request if you want them later:
-    # top_k: Optional[int] = None
-
-
-class AskResponse(BaseModel):
-    question: str
-    answer: str
-    top_k: int
-    sources: list
-    kg_entities: list
-    kg_relations: list
+mcp = FastMCP("SWiFty MCP RAG Server")
 
 
 def _env_ok() -> Dict[str, Any]:
@@ -63,48 +43,55 @@ def _env_ok() -> Dict[str, Any]:
     return {"ok": len(missing) == 0, "missing": missing}
 
 
-app = FastAPI(
-    title="MCP RAG Server (Neo4j + OpenAI)",
-    version="1.0.0",
-)
-
-# CORS (adjust origins for production)
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # change to your frontend domain later
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-
-@app.get("/health")
-def health():
+@mcp.tool()
+def health() -> Dict[str, Any]:
+    """
+    Basic health + config check.
+    """
     env = _env_ok()
     return {
-        "status": "ok",
+        "status": "ok" if env["ok"] else "not_ok",
         "env": env,
         "vector_index": (os.getenv("RAG_VECTOR_INDEX") or "chunk_embedding_index"),
         "top_k": int((os.getenv("RAG_TOP_K") or "10").strip()),
     }
 
 
-@app.post("/mcp/rag/ask", response_model=AskResponse)
-def ask(req: AskRequest):
+@mcp.tool()
+def rag_ask(question: str) -> Dict[str, Any]:
+    """
+    Ask the RAG system a German question. Returns answer + sources + KG context.
+    """
     env = _env_ok()
     if not env["ok"]:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Missing env vars: {', '.join(env['missing'])}",
-        )
+        return {
+            "error": f"Missing env vars: {', '.join(env['missing'])}",
+            "question": question,
+            "answer": "",
+            "top_k": int((os.getenv("RAG_TOP_K") or "10").strip()),
+            "sources": [],
+            "kg_entities": [],
+            "kg_relations": [],
+        }
 
-    q = (req.question or "").strip()
+    q = (question or "").strip()
     if not q:
-        raise HTTPException(status_code=400, detail="question must not be empty")
+        return {
+            "error": "question must not be empty",
+            "question": question,
+            "answer": "",
+            "top_k": int((os.getenv("RAG_TOP_K") or "10").strip()),
+            "sources": [],
+            "kg_entities": [],
+            "kg_relations": [],
+        }
 
-    try:
-        result = rag_answer(q)
-        return AskResponse(**result)
-    except Exception as e:
-        # If you want more debug info, print(e) or log it
-        raise HTTPException(status_code=500, detail=str(e))
+    # Call your existing RAG implementation (unchanged)
+    result = rag_answer(q)
+    return result
+
+
+if __name__ == "__main__":
+    # Standard MCP run method (transport depends on FastMCP version/setup).
+    # Many MCP clients run MCP servers via stdio; FastMCP supports that.
+    mcp.run()
