@@ -1307,7 +1307,7 @@
       "erwartete_antwort": "Hinweise auf Schreibwerkstatt, Tutorien, Beratungsangebote",
       "ist_valide": true,
       "test_typ": "validierung",
-      "tatsaechliche_antwort": "Es gab ein Problem bei der Suche nach Informationen auf der Website der FH Südwestfalen. Ich empfehle dir, direkt die Website der Hochschule zu besuchen oder den Studierendenservice zu kontaktieren. Dort erhältst du sicherlich Unterstützung beim wissenschaftlichen Schreiben. Normalerweise bieten Hochschulen oft Workshops, Schreibzentren oder Beratungen an, um Studierenden bei ihren wissenschaftlichen Arbeiten zu helfen.",
+      "tatsaechliche_antwort": " Es gab ein Problem bei der Suche nach Informationen auf der Website der FH Südwestfalen. Ich empfehle dir, direkt die Website der Hochschule zu besuchen oder den Studierendenservice zu kontaktieren. Dort erhältst du sicherlich Unterstützung beim wissenschaftlichen Schreiben. Normalerweise bieten Hochschulen oft Workshops, Schreibzentren oder Beratungen an, um Studierenden bei ihren wissenschaftlichen Arbeiten zu helfen.",
       "antwortzeit_sekunden": 2.6,
       "fehler": null,
       "timestamp": "2025-11-26T11:50:38.971237"
