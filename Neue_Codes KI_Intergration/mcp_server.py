@@ -33,6 +33,8 @@ from rag_tool_kg_entity_edges import rag_answer
 
 # FastMCP (the MCP framework)
 from fastmcp import FastMCP
+from starlette.requests import Request
+from starlette.responses import JSONResponse
 
 mcp = FastMCP("SWiFty MCP RAG Server")
 
@@ -43,18 +45,18 @@ def _env_ok() -> Dict[str, Any]:
     return {"ok": len(missing) == 0, "missing": missing}
 
 
-@mcp.tool()
-def health() -> Dict[str, Any]:
+@mcp.custom_route("/health", methods=["GET"])
+def health(request: Request) -> JSONResponse:
     """
     Basic health + config check.
     """
     env = _env_ok()
-    return {
+    return JSONResponse({
         "status": "ok" if env["ok"] else "not_ok",
         "env": env,
         "vector_index": (os.getenv("RAG_VECTOR_INDEX") or "chunk_embedding_index"),
         "top_k": int((os.getenv("RAG_TOP_K") or "10").strip()),
-    }
+    })
 
 
 @mcp.tool()
@@ -94,4 +96,4 @@ def rag_ask(question: str) -> Dict[str, Any]:
 if __name__ == "__main__":
     # Standard MCP run method (transport depends on FastMCP version/setup).
     # Many MCP clients run MCP servers via stdio; FastMCP supports that.
-    mcp.run()
+    mcp.run(transport="http", port=8081, host="0.0.0.0")
