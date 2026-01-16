@@ -26,7 +26,7 @@ Tipp: Zugangsdaten besser als Umgebungsvariablen setzen:
     set NEO4J_USER=neo4j
     set NEO4J_PASSWORD=dein_passwort
 
-Dann kannst du --uri / --user / --password weglassen.
+ --uri / --user / --password weglassen.
 """
 
 import os
@@ -252,4 +252,5 @@ if __name__ == "__main__":
             database=args.database,
             dry_run=args.dry_run,
         )
+
 
