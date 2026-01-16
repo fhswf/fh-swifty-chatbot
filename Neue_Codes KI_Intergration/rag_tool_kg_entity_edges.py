@@ -4,40 +4,19 @@ rag_tool_kg_entity_edges.py
 
 RAG + Knowledge Graph (entity-to-entity edges) for self-hosted Neo4j (Docker).
 
-Flow:
-1) Embed user question with OpenAI
-2) Vector-search topK=10 :Chunk nodes via Neo4j vector index
-3) Build KG context:
-   - Entities mentioned by those chunks (c)-[:MENTIONS]->(e)
-   - Entity-to-entity relations among those entities (e)-[:REL {type}]->(e)
-   - Optional: chunk.kg_relations_json fallback (if present)
-4) Ask OpenAI Chat model in German, produce an answer + sources.
-
-Requirements:
-  pip install neo4j openai python-dotenv
-
-Env vars:
-  OPENAI_API_KEY
-  NEO4J_URI        (e.g. bolt://localhost:7687)
-  NEO4J_USER
-  NEO4J_PASSWORD
-
-Optional env vars:
-  NEO4J_DATABASE           (optional)
-  RAG_VECTOR_INDEX         default: chunk_embedding_index
-  RAG_TOP_K                default: 10
-  RAG_EMBEDDING_MODEL      default: text-embedding-3-small
-  RAG_CHAT_MODEL           default: gpt-4.1-mini
-  RAG_MAX_TOKENS           default: 750
-  RAG_MAX_CHUNK_CHARS      default: 1200
-  RAG_MAX_ENTITIES         default: 40
-  RAG_MAX_RELATIONS        default: 80
+- Uses Neo4j VECTOR index (default: chunk_embedding_index)
+- Retrieves topK chunks via db.index.vector.queryNodes
+- Builds KG context:
+  - (:Chunk)-[:MENTIONS]->(:Entity)
+  - (:Entity)-[:REL {type}]->(:Entity)
+- Calls OpenAI LLM for German answers and prints sources with URLs if available.
 """
 
 import os
 import json
 import argparse
-from typing import Any, Dict, List, Optional, Tuple
+import re
+from typing import Any, Dict, List, Optional
 
 from dotenv import load_dotenv
 from neo4j import GraphDatabase, Driver
@@ -90,6 +69,47 @@ def get_openai_client() -> OpenAI:
 
 
 # -----------------------------
+# Utilities
+# -----------------------------
+_URL_RE = re.compile(r"^https?://", re.IGNORECASE)
+
+
+def is_http_url(s: str) -> bool:
+    return bool(s and _URL_RE.match(s.strip()))
+
+
+def extract_best_source(node: Any) -> str:
+    """
+    Prefer real URLs when possible. Tries:
+      1) node.url / node.source / node.path
+      2) node.metadata.url / node.metadata.source / node.metadata.path
+    """
+    if not node:
+        return ""
+
+    # direct props
+    for k in ("url", "source", "path"):
+        v = node.get(k)
+        if isinstance(v, str) and v.strip():
+            return v.strip()
+
+    # metadata props
+    md = node.get("metadata")
+    if isinstance(md, dict):
+        for k in ("url", "source", "path"):
+            v = md.get(k)
+            if isinstance(v, str) and v.strip():
+                return v.strip()
+
+    return ""
+
+
+def _clip(s: str, n: int) -> str:
+    s = (s or "").strip()
+    return s if len(s) <= n else (s[:n].rstrip() + " …")
+
+
+# -----------------------------
 # OpenAI Embeddings
 # -----------------------------
 def embed_text(client: OpenAI, text: str) -> List[float]:
@@ -100,17 +120,7 @@ def embed_text(client: OpenAI, text: str) -> List[float]:
 # -----------------------------
 # Neo4j retrieval
 # -----------------------------
-def fetch_topk_chunks(
-    tx,
-    index_name: str,
-    embedding: List[float],
-    k: int
-) -> List[Dict[str, Any]]:
-    """
-    Requires vector index like:
-      CREATE VECTOR INDEX chunk_embedding_index
-      FOR (c:Chunk) ON (c.embedding) ...
-    """
+def fetch_topk_chunks(tx, index_name: str, embedding: List[float], k: int) -> List[Dict[str, Any]]:
     cypher = """
     CALL db.index.vector.queryNodes($index_name, $k, $embedding)
     YIELD node, score
@@ -123,21 +133,21 @@ def fetch_topk_chunks(
     for r in rows:
         c = r["c"]
         score = float(r["score"])
+
+        source = extract_best_source(c)
+
         out.append({
             "id": c.get("id"),
             "text": (c.get("text") or c.get("page_content") or ""),
             "score": score,
-            "source": c.get("source") or c.get("url") or c.get("path") or "",
-            "title": c.get("title") or "",
+            "source": source,
+            "title": (c.get("title") or (c.get("metadata", {}) or {}).get("title") or ""),
             "kg_relations_json": c.get("kg_relations_json") or "",
         })
     return out
 
 
 def fetch_entities_for_chunks(tx, chunk_ids: List[str], limit_entities: int) -> List[Dict[str, Any]]:
-    """
-    Get entities mentioned by the selected chunks.
-    """
     cypher = """
     UNWIND $chunk_ids AS cid
     MATCH (c:Chunk {id: cid})-[:MENTIONS]->(e:Entity)
@@ -150,10 +160,6 @@ def fetch_entities_for_chunks(tx, chunk_ids: List[str], limit_entities: int) -> 
 
 
 def fetch_relations_between_entities(tx, entity_names: List[str], limit_rel: int) -> List[Dict[str, Any]]:
-    """
-    Fetch entity-to-entity relations among the mentioned entities.
-    Uses a single relationship type :REL with property r.type.
-    """
     cypher = """
     UNWIND $names AS n
     MATCH (a:Entity {name: n})
@@ -170,63 +176,29 @@ def fetch_relations_between_entities(tx, entity_names: List[str], limit_rel: int
 # -----------------------------
 # Prompt building
 # -----------------------------
-def _clip(s: str, n: int) -> str:
-    s = s or ""
-    s = s.strip()
-    return s if len(s) <= n else (s[:n].rstrip() + " …")
-
-
-def build_prompt_de(
-    question: str,
-    chunks: List[Dict[str, Any]],
-    entities: List[Dict[str, Any]],
-    rels: List[Dict[str, Any]],
-) -> str:
-    # Chunk context
+def build_prompt_de(question: str, chunks: List[Dict[str, Any]], entities: List[Dict[str, Any]], rels: List[Dict[str, Any]]) -> str:
     if chunks:
         chunk_blocks = []
         for i, c in enumerate(chunks, start=1):
-            header = f"[Chunk {i}] score={c['score']:.4f}"
+            header = f"[Chunk {i}] score={c['score']:.4f} | id={c.get('id','')}"
             if c.get("title"):
                 header += f" | title={c['title']}"
             if c.get("source"):
                 header += f" | source={c['source']}"
-            header += f" | id={c.get('id','')}"
-            chunk_blocks.append(header + "\n" + _clip(c.get("text",""), MAX_CHUNK_CHARS))
+            chunk_blocks.append(header + "\n" + _clip(c.get("text", ""), MAX_CHUNK_CHARS))
         chunk_text = "\n\n---\n\n".join(chunk_blocks)
     else:
         chunk_text = "Keine Chunks gefunden."
 
-    # KG entity context
     if entities:
-        ent_lines = []
-        for e in entities:
-            ent_lines.append(f"- {e['name']} ({e['type']}) [freq={e.get('freq',0)}]")
-        ent_text = "\n".join(ent_lines)
+        ent_text = "\n".join([f"- {e['name']} ({e['type']}) [freq={e.get('freq',0)}]" for e in entities])
     else:
         ent_text = "Keine Entities gefunden."
 
-    # KG relation context
     if rels:
-        rel_lines = []
-        for r in rels:
-            rel_lines.append(f"- {r['source']} --{r['type']}--> {r['target']}")
-        rel_text = "\n".join(rel_lines)
+        rel_text = "\n".join([f"- {r['source']} --{r['type']}--> {r['target']}" for r in rels])
     else:
         rel_text = "Keine Entity-zu-Entity-Relationen gefunden."
-
-    # Optional fallback: show chunk-level relation JSON count (not full dump)
-    chunk_rel_counts = []
-    for c in chunks:
-        raw = c.get("kg_relations_json") or ""
-        if raw:
-            try:
-                arr = json.loads(raw)
-                if isinstance(arr, list) and arr:
-                    chunk_rel_counts.append(f"- {c.get('id','')}: {len(arr)} relations in kg_relations_json")
-            except Exception:
-                pass
-    chunk_rel_hint = "\n".join(chunk_rel_counts) if chunk_rel_counts else "(keine chunk-level relations_json Hinweise)"
 
     return f"""
 Du bist ein hilfreicher Assistent. Beantworte die Nutzerfrage auf Deutsch, sachlich und nachvollziehbar.
@@ -235,7 +207,8 @@ WICHTIG:
 - Nutze primär den Kontext aus Chunks und Knowledge-Graph.
 - Wenn etwas nicht im Kontext steht: sag das klar.
 - Keine Halluzinationen.
-- Nenne am Ende **Quellen**: liste die verwendeten Chunks als Bulletpoints (id + ggf. source/title).
+- Nenne am Ende **Quellen**: liste die verwendeten Chunks als Bulletpoints.
+  Jede Quelle soll möglichst eine URL enthalten. Falls keine URL existiert, nutze den gespeicherten source/path.
 
 Nutzerfrage:
 {question}
@@ -245,21 +218,17 @@ CHUNK-KONTEXT (Top {len(chunks)}):
 {chunk_text}
 
 ========================
-KNOWLEDGE-GRAPH: ENTITIES (aus den Chunks):
+KNOWLEDGE-GRAPH: ENTITIES:
 {ent_text}
 
 ========================
 KNOWLEDGE-GRAPH: RELATIONEN (Entity->Entity):
 {rel_text}
 
-========================
-HINWEIS: Chunk-level kg_relations_json (nur Anzahl je Chunk):
-{chunk_rel_hint}
-
 Antworte strukturiert:
 1) Antwort
 2) Kurze Begründung mit Bezug auf Kontext
-3) Quellen (Chunk-Liste)
+3) Quellen (Chunk-Liste, mit URL wenn möglich)
 """.strip()
 
 
@@ -290,7 +259,6 @@ def rag_answer(question: str) -> Dict[str, Any]:
         with driver.session(database=NEO4J_DATABASE) if NEO4J_DATABASE else driver.session() as session:
             chunks = session.execute_read(fetch_topk_chunks, VECTOR_INDEX, q_emb, TOP_K)
 
-            # Keep only valid chunk ids
             chunk_ids = [c["id"] for c in chunks if isinstance(c.get("id"), str) and c["id"].strip()]
 
             entities = []
@@ -304,14 +272,16 @@ def rag_answer(question: str) -> Dict[str, Any]:
         prompt = build_prompt_de(question, chunks, entities, rels)
         answer = ask_llm(oai, prompt)
 
-        # Build sources list for UI
+        # Sources list for UI + always include URL if possible
         sources = []
         for c in chunks:
+            src = (c.get("source") or "").strip()
             sources.append({
                 "chunk_id": c.get("id"),
                 "score": c.get("score"),
                 "title": c.get("title"),
-                "source": c.get("source"),
+                "source": src,
+                "is_url": is_http_url(src),
             })
 
         return {
@@ -360,28 +330,16 @@ def main():
     print(result["question"])
     print("\nANTWORT:")
     print(result["answer"])
+
     print("\n" + "-" * 80)
     print("QUELLEN (TopK=10):")
     for s in result["sources"]:
-        line = f"- id={s.get('chunk_id')} | score={s.get('score'):.4f}"
+        line = f"- id={s.get('chunk_id')} | score={float(s.get('score') or 0.0):.4f}"
         if s.get("title"):
             line += f" | title={s.get('title')}"
         if s.get("source"):
             line += f" | source={s.get('source')}"
         print(line)
-
-    print("\n" + "-" * 80)
-    print("KG-KONTEXT (Kurz):")
-    if result["kg_entities"]:
-        print("Entities (top): " + ", ".join([e["name"] for e in result["kg_entities"][:15]]))
-    else:
-        print("Entities: (keine)")
-    if result["kg_relations"]:
-        print("Relations (top):")
-        for r in result["kg_relations"][:10]:
-            print(f"  - {r['source']} --{r['type']}--> {r['target']}")
-    else:
-        print("Relations: (keine)")
 
 
 if __name__ == "__main__":
