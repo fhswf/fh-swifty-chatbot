@@ -27,9 +27,9 @@ OUTPUT_PATH = r"E:\fh_chunks_embedded.jsonl"
 PROCESSED_EMB_LIST = r"E:\processed_embeddings.txt"
 
 
-# ------------------------------------------------------------
+
 # Fortschritt / bereits eingebettete IDs laden/speichern
-# ------------------------------------------------------------
+
 
 def load_processed_ids() -> Set[str]:
     """
@@ -73,9 +73,9 @@ def append_processed_ids(ids: List[str]) -> None:
             f.write(cid + "\n")
 
 
-# ------------------------------------------------------------
+
 # Embedding-Client (z.B. OpenAI)
-# ------------------------------------------------------------
+
 
 def get_embedding_client() -> Any:
     """
@@ -118,9 +118,9 @@ def embed_batch(
             raise e
 
 
-# ------------------------------------------------------------
+
 # Hauptlogik: fh_chunks.jsonl -> fh_chunks_embedded.jsonl
-# ------------------------------------------------------------
+
 
 def embed_to_jsonl(model: str, batch_size: int = 32) -> None:
     if not os.path.exists(INPUT_PATH):
@@ -219,9 +219,9 @@ def embed_to_jsonl(model: str, batch_size: int = 32) -> None:
     print(f"[INFO] Gesamtzahl eingebetteter IDs (inkl. früherer Läufe): {len(processed_ids)}")
 
 
-# ------------------------------------------------------------
+
 # CLI
-# ------------------------------------------------------------
+
 
 def build_arg_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description="Embedding-Phase für fh_chunks.jsonl → fh_chunks_embedded.jsonl")
@@ -247,3 +247,4 @@ if __name__ == "__main__":
         model=args.model,
         batch_size=args.batch_size,
     )
+
