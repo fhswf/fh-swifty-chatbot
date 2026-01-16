@@ -29,9 +29,7 @@ OUTPUT_PATH = r"E:\fh_chunks.jsonl"
 PROCESSED_LIST = r"E:\processed_files.txt"
 
 
-# ------------------------------------------------------------
 # Dateien einsammeln
-# ------------------------------------------------------------
 
 def collect_files(root: str) -> List[str]:
     file_paths: List[str] = []
@@ -57,9 +55,8 @@ def collect_files(root: str) -> List[str]:
     return file_paths
 
 
-# ------------------------------------------------------------
 # Text-Normalisierung & Signaturen für Near-Dedup
-# ------------------------------------------------------------
+
 
 def _normalize_text(text: str) -> str:
     """
@@ -82,13 +79,11 @@ def make_signature(text: str) -> str:
     """
     norm = _normalize_text(text or "")
     if len(norm) < 50:
-        return ""  # zu kurz → nicht deduplizieren
+        return ""  
     return norm[:120]
 
 
-# ------------------------------------------------------------
 # Chunk-ID (stabil & deterministisch)
-# ------------------------------------------------------------
 
 def compute_chunk_id(doc: Document, idx: int) -> str:
     """
@@ -106,9 +101,8 @@ def compute_chunk_id(doc: Document, idx: int) -> str:
     return hashlib.sha1(base.encode("utf-8")).hexdigest()
 
 
-# ------------------------------------------------------------
 # Verarbeitete Dateien laden/speichern (Resume-Mechanismus)
-# ------------------------------------------------------------
+
 
 def load_processed_files() -> Set[str]:
     if not os.path.exists(PROCESSED_LIST):
@@ -127,9 +121,7 @@ def save_processed_file(path: str) -> None:
         f.write(path + "\n")
 
 
-# ------------------------------------------------------------
 # Docling + HybridChunker (mit Fehler-Schutz & Dedup & Resume)
-# ------------------------------------------------------------
 
 def preprocess_to_jsonl(path: str, output_path: str, export_type: str = "markdown") -> None:
     # 1) Quellen vorbereiten
@@ -150,10 +142,10 @@ def preprocess_to_jsonl(path: str, output_path: str, export_type: str = "markdow
     # 2) Output-Ordner erzeugen
     os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
 
-    # --------------------------------------------------------
+    
     #  Bestehende Signaturen aus vorhandener JSONL laden
-    #  → verhindert Duplikate über mehrere Läufe hinweg
-    # --------------------------------------------------------
+    #  verhindert Duplikate über mehrere Läufe hinweg
+    
     seen_signatures: Set[str] = set()
     count = 0
 
@@ -173,9 +165,9 @@ def preprocess_to_jsonl(path: str, output_path: str, export_type: str = "markdow
                     continue
         print(f"[INFO] {count} bestehende Chunks, {len(seen_signatures)} Signaturen geladen.")
 
-    # --------------------------------------------------------
+    
     #  Bereits vollständig verarbeitete Dateien laden
-    # --------------------------------------------------------
+    
     processed_files = load_processed_files()
     if processed_files:
         print(f"[INFO] {len(processed_files)} bereits verarbeitete Dateien gefunden "
@@ -187,9 +179,9 @@ def preprocess_to_jsonl(path: str, output_path: str, export_type: str = "markdow
 
     with open(output_path, "a", encoding="utf-8") as out_f:
 
-        # --------------------------------------------------------
+        
         #  ITERATION MIT try/except → Fehlerhafte Dateien skippen
-        # --------------------------------------------------------
+        
         for file_idx, file_path in enumerate(sources):
             if file_path in processed_files:
                 print(f"[INFO] Datei bereits verarbeitet, überspringe: {file_path}")
@@ -250,9 +242,8 @@ def preprocess_to_jsonl(path: str, output_path: str, export_type: str = "markdow
     print(f"[INFO] Insgesamt {count} Chunks in {output_path} gespeichert.")
 
 
-# ------------------------------------------------------------
 # CLI
-# ------------------------------------------------------------
+
 
 def build_arg_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description="Docling + HybridChunker → JSONL Preprocessing")
@@ -263,7 +254,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     )
     p.add_argument(
         "--output",
-        required=False,        # ← wird ignoriert, da fix auf E:\fh_chunks.jsonl
+        required=False,        #  wird ignoriert, da fix auf E:\fh_chunks.jsonl
         default="IGNORED",
         help="(IGNORED – Ausgabe immer E:\\fh_chunks.jsonl)",
     )
@@ -284,6 +275,7 @@ if __name__ == "__main__":
         output_path="IGNORED",
         export_type=args.export_type,
     )
+
 
 
 
