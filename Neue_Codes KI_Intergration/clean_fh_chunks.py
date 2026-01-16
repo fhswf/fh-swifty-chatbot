@@ -27,9 +27,8 @@ INPUT_PATH = r"E:\fh_chunks.jsonl"
 OUTPUT_PATH = r"E:\fh_chunks_clean.jsonl"
 
 
-# ------------------------------------------------------------
 # Text-Normalisierung
-# ------------------------------------------------------------
+
 
 def normalize_text(text: str) -> str:
     """
@@ -57,9 +56,9 @@ def normalize_text(text: str) -> str:
     return cleaned
 
 
-# ------------------------------------------------------------
+
 # Chunk-Splitting
-# ------------------------------------------------------------
+
 
 def split_text_into_chunks(text: str, max_chars: int) -> List[str]:
     """
@@ -136,9 +135,8 @@ def split_text_into_chunks(text: str, max_chars: int) -> List[str]:
     return final_chunks
 
 
-# ------------------------------------------------------------
 # Hauptlogik: fh_chunks.jsonl -> fh_chunks_clean.jsonl
-# ------------------------------------------------------------
+
 
 def clean_chunks(input_path: str, output_path: str, max_chars: int) -> None:
     if not os.path.exists(input_path):
@@ -227,9 +225,8 @@ def clean_chunks(input_path: str, output_path: str, max_chars: int) -> None:
     print(f"[INFO] Bereinigte Datei:           {output_path}")
 
 
-# ------------------------------------------------------------
+
 # CLI
-# ------------------------------------------------------------
 
 def build_arg_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description="Reinigung & Normalisierung von fh_chunks.jsonl")
@@ -261,3 +258,4 @@ if __name__ == "__main__":
         output_path=args.output,
         max_chars=args.max_chars,
     )
+
