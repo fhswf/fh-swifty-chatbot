@@ -21,7 +21,7 @@ COPY rag_tool_kg_entity_edges.py /app/rag_tool_kg_entity_edges.py
 # IMPORTANT:
 # MCP servers are commonly stdio-based. Docker "EXPOSE" isn't strictly required.
 # But leaving it here doesn't hurt if you later add an HTTP bridge.
-EXPOSE 8080
+EXPOSE 8081
 
 # Run MCP server
 CMD ["python", "mcp_server.py"]

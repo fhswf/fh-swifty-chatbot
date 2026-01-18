@@ -6,8 +6,14 @@ resources:
 - service.yaml
 - ingress.yaml
 - secrets.yaml
+- mcp-server-deployment.yaml
+- mcp-server-service.yaml
+- mcp-server-ingress.yaml
 
 images:
 - name: fh-swifty-chatbot
   newName: ghcr.io/fhswf/fh-swifty-chatbot
+  newTag: "0.10.0"
+- name: fh-swifty-mcp-server
+  newName: ghcr.io/fhswf/fh-swifty-mcp-server
   newTag: "0.10.0"
