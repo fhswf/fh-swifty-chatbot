@@ -1,14 +1,23 @@
 // Set MCP server configuration in local storage
 (function() {
-    const targetUrl = "https://mcp.fh-swf.cloud/mcp";
-    const newServer = {
-        "name": "FH SWF MCP Server",
-        "clientType": "streamable-http",
-        "command": null,
-        "url": targetUrl,
-        "headers": null,
-        "status": "connected"
-    };
+    const servers = [
+        {
+            "name": "FH SWF MCP Server",
+            "clientType": "streamable-http",
+            "command": null,
+            "url": "https://mcp.fh-swf.cloud/mcp",
+            "headers": null,
+            "status": "connected"
+        },
+        {
+            "name": "FH SWF Chatbot MCP Server",
+            "clientType": "streamable-http",
+            "command": null,
+            "url": "https://chatbot.fh-swf.cloud/mcp",
+            "headers": null,
+            "status": "connected"
+        }
+    ];
     
     try {
         // Check if mcp_storage_key exists in localStorage
@@ -28,17 +37,21 @@
             }
         }
         
-        // Check if server with target URL already exists
-        const serverExists = mcpConfig.some(server => server.url === targetUrl);
+        // Add each server if it doesn't already exist
+        servers.forEach(newServer => {
+            const serverExists = mcpConfig.some(server => server.url === newServer.url);
+            
+            if (!serverExists) {
+                // Add the new server to the list
+                mcpConfig.unshift(newServer);
+                console.log('[MCP Config] Added', newServer.name, 'to existing configuration');
+            } else {
+                console.log('[MCP Config] Server with URL', newServer.url, 'already exists in configuration');
+            }
+        });
         
-        if (!serverExists) {
-            // Add the new server to the list
-            mcpConfig.unshift(newServer);
-            localStorage.setItem('mcp_storage_key', JSON.stringify(mcpConfig));
-            console.log('[MCP Config] Added FH SWF MCP Server to existing configuration');
-        } else {
-            console.log('[MCP Config] Server with URL', targetUrl, 'already exists in configuration');
-        }
+        // Save the updated configuration
+        localStorage.setItem('mcp_storage_key', JSON.stringify(mcpConfig));
     } catch (error) {
         console.error('[MCP Config] Failed to set MCP storage key:', error);
     }
