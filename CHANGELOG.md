@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.13.0 (2026-01-18)
+
+### Features
+
+- Update MCP server configuration to support multiple servers
+  ([`4e1b321`](https://github.com/fhswf/fh-swifty-chatbot/commit/4e1b3212a78521e7ac9b212bcab6732c342671c6))
+
+
 ## v0.12.0 (2026-01-18)
 
 ### Features
