@@ -1,9 +1,15 @@
 # CHANGELOG
 
 
+## v0.14.0 (2026-01-18)
+
+
 ## v0.13.0 (2026-01-18)
 
 ### Features
+
+- Enhance chatbot prompts to include new tool usage
+  ([`17698e9`](https://github.com/fhswf/fh-swifty-chatbot/commit/17698e9bbf812e74a2f540a6616cf7f8d615ec30))
 
 - Update MCP server configuration to support multiple servers
   ([`4e1b321`](https://github.com/fhswf/fh-swifty-chatbot/commit/4e1b3212a78521e7ac9b212bcab6732c342671c6))
