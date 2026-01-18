@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.12.0 (2026-01-18)
+
+### Features
+
+- Trigger build
+  ([`f5ca2c1`](https://github.com/fhswf/fh-swifty-chatbot/commit/f5ca2c1cd91b8592fb07e07196c61780109fcb70))
+
+
 ## v0.11.0 (2026-01-18)
 
 ### Features
