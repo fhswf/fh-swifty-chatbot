@@ -1,7 +1,25 @@
 # CHANGELOG
 
 
+## v0.14.1 (2026-01-18)
+
+### Bug Fixes
+
+- Update MCP server URL based on hostname condition
+  ([`1193642`](https://github.com/fhswf/fh-swifty-chatbot/commit/1193642c42083c2369ae95499cacb1c60c5054fe))
+
+### Chores
+
+- Update fh-swifty-chatbot version to 0.14.0 and modify MCP server configuration
+  ([`377768c`](https://github.com/fhswf/fh-swifty-chatbot/commit/377768c4961774a9592f557551b6f0efa43b2982))
+
+
 ## v0.14.0 (2026-01-18)
+
+### Chores
+
+- Update fh-swifty-chatbot version and modify MCP server configuration
+  ([`226cd74`](https://github.com/fhswf/fh-swifty-chatbot/commit/226cd749b72e83116f9a332c0408370d7f4b22f5))
 
 
 ## v0.13.0 (2026-01-18)
