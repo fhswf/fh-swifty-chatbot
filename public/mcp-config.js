@@ -5,7 +5,7 @@
             "name": "FH SWF Chatbot MCP Server External",
             "clientType": "streamable-http",
             "command": null,
-            "url": "https://chatbot.fh-swf.cloud/mcp",
+            "url": window.location.hostname === "fh-swifty-chatbot.fh-swf.cloud" ? "http://fh-swifty-mcp-server/mcp" : "https://chatbot.fh-swf.cloud/mcp",
             "headers": null,
             "status": "connected"
         },
