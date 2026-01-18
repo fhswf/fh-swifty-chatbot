@@ -10,7 +10,15 @@
             "status": "connected"
         },
         {
-            "name": "FH SWF Chatbot MCP Server",
+            "name": "FH SWF Chatbot MCP Server Internal",
+            "clientType": "streamable-http",
+            "command": null,
+            "url": "http://fh-swifty-mcp-server/mcp",
+            "headers": null,
+            "status": "connected"
+        },
+        {
+            "name": "FH SWF Chatbot MCP Server External",
             "clientType": "streamable-http",
             "command": null,
             "url": "https://chatbot.fh-swf.cloud/mcp",
