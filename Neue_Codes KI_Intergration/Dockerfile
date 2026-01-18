@@ -8,7 +8,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /app
 
 # Install dependencies first (better caching)
-COPY requirements.txt /app/requirements.txt
+COPY requirement.txt /app/requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy project files
