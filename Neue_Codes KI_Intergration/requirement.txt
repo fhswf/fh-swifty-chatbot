@@ -1,4 +1,4 @@
-fastmcp
+fastmcp==2.13.0.2
 neo4j==5.27.0
 openai==1.60.0
 python-dotenv==1.0.1
