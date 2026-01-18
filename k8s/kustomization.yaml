@@ -8,7 +8,6 @@ resources:
 - secrets.yaml
 - mcp-server-deployment.yaml
 - mcp-server-service.yaml
-- mcp-server-ingress.yaml
 - neo4j-deployment.yaml
 - neo4j-service.yaml
 - neo4j-pvc.yaml
