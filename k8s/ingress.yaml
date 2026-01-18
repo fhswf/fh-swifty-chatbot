@@ -38,9 +38,9 @@ spec:
       paths:
       - backend:
           service:
-            name: neo4j
+            name: fh-swifty-mcp-server
             port:
-              number: 7474
+              number: 80
         path: /
         pathType: Prefix 
 
@@ -68,6 +68,30 @@ metadata:
     traefik.ingress.kubernetes.io/router.priority: "10"
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
     traefik.ingress.kubernetes.io/router.tls.certresolver: letsencrypt
+  name: fh-swifty-mcp-server.fh-swf.de-frontend
+  namespace: fh-swifty-chatbot
+spec:
+  rules:
+  - host: fh-swifty-mcp-server.fh-swf.cloud
+    http:
+      paths:
+      - backend:
+          service:
+            name: fh-swifty-mcp-server
+            port:
+              number: 80
+        path: /
+        pathType: Prefix 
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    traefik.frontend.passHostHeader: "true"
+    traefik.ingress.kubernetes.io/router.priority: "10"
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls.certresolver: letsencrypt
   name: neo4j-swifty-chatbot.fh-swf.de-frontend
   namespace: fh-swifty-chatbot
 spec:
@@ -77,9 +101,9 @@ spec:
       paths:
       - backend:
           service:
-            name: fh-swifty-chatbot
+            name: neo4j
             port:
-              number: 80
+              number: 7474
         path: /
         pathType: Prefix
 ---

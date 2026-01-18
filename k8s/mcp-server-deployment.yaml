@@ -35,10 +35,7 @@ spec:
                   name: fh-swifty-chatbot-secrets
                   key: NEO4J_URI
             - name: NEO4J_USER
-              valueFrom:
-                secretKeyRef:
-                  name: fh-swifty-chatbot-secrets
-                  key: NEO4J_USER
+              value: neo4j
             - name: NEO4J_PASSWORD
               valueFrom:
                 secretKeyRef:
