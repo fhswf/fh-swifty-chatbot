@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.11.0 (2026-01-18)
+
+### Features
+
+- New deploy trigger
+  ([`06d7fc8`](https://github.com/fhswf/fh-swifty-chatbot/commit/06d7fc8139312533eeeea777ddfdbc8d9465c378))
+
+
 ## v0.10.0 (2025-11-13)
 
 ### Features
