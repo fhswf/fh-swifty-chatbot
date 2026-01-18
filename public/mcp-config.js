@@ -2,7 +2,7 @@
 (function() {
     const servers = [
         {
-            "name": "FH SWF Chatbot MCP Server External",
+            "name": "FH SWF Chatbot MCP Server",
             "clientType": "streamable-http",
             "command": null,
             "url": window.location.hostname === "fh-swifty-chatbot.fh-swf.cloud" ? "http://fh-swifty-mcp-server/mcp" : "https://chatbot.fh-swf.cloud/mcp",
@@ -16,15 +16,7 @@
             "url": "https://mcp.fh-swf.cloud/mcp",
             "headers": null,
             "status": "connected"
-        },
-        {
-            "name": "FH SWF Chatbot MCP Server Internal",
-            "clientType": "streamable-http",
-            "command": null,
-            "url": "http://fh-swifty-mcp-server/mcp",
-            "headers": null,
-            "status": "connected"
-        },
+        }
     ];
     
     try {
