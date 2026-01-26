@@ -148,9 +148,9 @@ def load_test_data(test_data_file: str = None):
         test_files = list(TEST_DATA_DIR.glob("*.json"))
         if not test_files:
             return None
-        # Verwende die erste gefundene Datei (oder die simple-Version falls vorhanden)
-        simple_file = TEST_DATA_DIR / "chatbot_tests_simple.json"
-        test_data_file = simple_file if simple_file.exists() else test_files[0]
+        # Verwende die erste gefundene Datei (oder die test-Version falls vorhanden)
+        test_file = TEST_DATA_DIR / "chatbot_tests_fragen.json"
+        test_data_file = test_file if test_file.exists() else test_files[0]
     
     test_data_path = Path(test_data_file)
     if not test_data_path.exists():
@@ -204,11 +204,11 @@ def get_comparison_label(value):
     return labels.get(value, "Keine Bewertung")
 
 
-def get_chatgpt_answer(api_key: str, question: str, model: str = "gpt-4o-mini") -> dict:
+def get_chatgpt_answer(api_key: str, question: str, model: str = "gpt-4o") -> dict:
     """Ruft eine Antwort von ChatGPT ab"""
     try:
         # Validierung der Modell-ID
-        valid_models = ["gpt-4o-mini", "gpt-4o", "gpt-3.5-turbo", "gpt-4-turbo"]
+        valid_models = ["gpt-3.5-turbo", "gpt-4o-mini", "gpt-4o", "gpt-4-turbo"]
         if model not in valid_models:
             return {
                 'answer': None,
@@ -499,10 +499,19 @@ def main():
                 st.markdown("**Likert-Skala Bewertung**")
                 st.caption("1 = Stimme überhaupt nicht zu, 5 = Stimme voll und ganz zu")
                 
+                # Index sicher berechnen: prüfe ob rating existiert und nicht None ist
+                rating_value = previous_rating.get('rating') if previous_rating else None
+                if rating_value is not None and isinstance(rating_value, (int, float)):
+                    # Stelle sicher, dass der Index im gültigen Bereich ist (0-4)
+                    radio_index = max(0, min(4, int(rating_value) - 1))
+                else:
+                    # Standard-Index: 2 (entspricht Wert 3 = "Teils/teils")
+                    radio_index = 2
+                
                 rating = st.radio(
                     "Wie gut entspricht die Antwort der Erwartung?",
                     options=[1, 2, 3, 4, 5],
-                    index=previous_rating.get('rating', 3) - 1 if previous_rating else 2,
+                    index=radio_index,
                     format_func=lambda x: f"{x} - {get_likert_label(x)}",
                     key=f"rating_{test_id}"
                 )
@@ -1057,10 +1066,19 @@ def main():
                     st.markdown("**Vergleichsbewertung**")
                     st.caption("Wie gut ist die eigene Antwort im Vergleich zu ChatGPT?")
                     
+                    # Index sicher berechnen: prüfe ob comparison_rating existiert und nicht None ist
+                    comparison_rating_value = chatgpt_data.get('comparison_rating') if chatgpt_data else None
+                    if comparison_rating_value is not None and isinstance(comparison_rating_value, (int, float)):
+                        # Stelle sicher, dass der Index im gültigen Bereich ist (0-4)
+                        comp_radio_index = max(0, min(4, int(comparison_rating_value) - 1))
+                    else:
+                        # Standard-Index: 2 (entspricht Wert 3 = "ähnlich")
+                        comp_radio_index = 2
+                    
                     comparison_rating = st.radio(
                         "Bewertung:",
                         options=[1, 2, 3, 4, 5],
-                        index=chatgpt_data.get('comparison_rating', 3) - 1 if chatgpt_data.get('comparison_rating') else 2,
+                        index=comp_radio_index,
                         format_func=lambda x: f"{x} - {get_comparison_label(x)}",
                         key=f"comp_rating_{test_id}"
                     )
