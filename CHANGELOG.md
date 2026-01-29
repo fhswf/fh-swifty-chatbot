@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.15.0 (2026-01-29)
+
+### Features
+
+- Update readme and chainlit.md
+  ([`653c03d`](https://github.com/fhswf/fh-swifty-chatbot/commit/653c03de37e116564231e801e7e3a212c21ce890))
+
+
 ## v0.14.2 (2026-01-18)
 
 ### Bug Fixes
