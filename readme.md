@@ -4,17 +4,19 @@
 Ein intelligenter KI-Chatbot für die FH Südwestfalen (SWF), entwickelt mit LangGraph und Chainlit. Der Chatbot kann Fragen über die Hochschule und ihre Studiengänge beantworten und greift dabei auf die offizielle Website der FH SWF zu.
 
 ## Projektstatus
-- **Version**: 0.1.5
+- **Version**: 0.14.2
 - **Status**: In Entwicklung
 - **Python erforderlich**: >=3.13
-- **Letzte Aktualisierung**: 18. September 2025
+- **Letzte Aktualisierung**: Januar 2025
 
 ## Technologie-Stack
 - **LangGraph**: Agent-basierte Architektur
 - **Chainlit**: Web-Interface für den Chatbot
 - **OpenAI GPT-4**: Sprachmodell
 - **Tavily Search**: Web-Suche auf der FH SWF Website
-- **LangChain**: Framework für LLM-Anwendungen
+- **LangChain** (langchain-openai, langchain-community, langchain-tavily): Framework für LLM-Anwendungen
+- **Neo4j**: Wissensgraph / Graph-Datenbank (optional)
+- **MCP** (langchain-mcp-adapters): Model Context Protocol-Integration
 - **Docker**: Containerisierung
 - **Kubernetes**: Orchestrierung
 - **UV**: Python Package Manager
@@ -22,42 +24,60 @@ Ein intelligenter KI-Chatbot für die FH Südwestfalen (SWF), entwickelt mit Lan
 ## Projektstruktur
 ```
 FH-SWiFty-Chatbot/
-├── main.py                              # Haupteingangspunkt
+├── main.py                              # Skript-Einstieg
 ├── pyproject.toml                       # Projektkonfiguration
-├── chainlit.md                          # Chainlit-Konfiguration
+├── chainlit.md                          # Willkommensseite im Chat-UI
+├── rag_tool.py                          # RAG-Tool (Retrieval)
 ├── Dockerfile                           # Container-Konfiguration
 ├── docker-compose.yaml                  # Docker Compose Setup
 ├── build.sh                             # Build-Skript
 ├── CHANGELOG.md                         # Änderungsprotokoll
 ├── release_config.json                  # Release-Konfiguration
-├── uv.lock                              # Abhängigkeits-Lockfile
+├── SERVICES.md                          # Services-Dokumentation
+├── .chainlit/                           # Chainlit-Konfiguration
+│   ├── config.toml                      # UI-/Sprach-Konfiguration
+│   └── translations/                    # Übersetzungen (mehrsprachig)
 ├── public/                              # Statische Assets
-│   ├── logo_dark.png                    # Dunkles Logo
-│   └── logo_light.png                   # Helles Logo
+│   ├── logo_dark.png, logo_light.png    # Logos
+│   ├── favicon.ico, favicon.png         # Favicons
+│   ├── fh-swf-avatar.png                # Avatar
+│   ├── fh-swf-theme.css                 # Theme
+│   ├── mcp-config.js                    # MCP-Client-Konfiguration
+│   └── *.svg                            # Icons (professor, schedule, …)
 ├── k8s/                                 # Kubernetes-Konfiguration
-│   ├── application.yaml                 # K8s-Anwendung
-│   ├── deployment.yaml                  # K8s-Deployment
-│   ├── ingress.yaml                     # K8s-Ingress
-│   ├── kustomization.yaml              # Kustomize-Konfiguration
-│   ├── secrets.yaml                     # K8s-Secrets
-│   └── service.yaml                     # K8s-Service
+│   ├── application.yaml, deployment.yaml, ingress.yaml
+│   ├── kustomization.yaml, secrets.yaml, service.yaml
+│   ├── mcp-server-deployment.yaml, mcp-server-service.yaml
+│   ├── neo4j-deployment.yaml, neo4j-pvc.yaml, neo4j-service.yaml
+│   └── qdrant-deployment.yaml, qdrant-pvc.yaml, qdrant-service.yaml
 ├── fh-swifty-chatbot/                   # Haupt-Chatbot-Modul
-│   ├── agent_langgraph_app.py          # Haupt-Chatbot-Anwendung
-│   ├── main.py                         # Modul-Eingangspunkt
+│   ├── agent_langgraph_app.py           # Chainlit-Einstieg (Haupt-App)
+│   ├── main.py                          # Modul-Einstieg
 │   ├── helpers/                         # Hilfsfunktionen
-│   │   ├── prompts.py                  # Prompt-Templates
-│   │   └── tools.py                    # Web-Such-Tools
-│   └── notebook/                        # Jupyter Notebooks
-│       └── web_crawler/
-│           └── urlLoader.ipynb         # Web-Crawler-Notebook
-            └── check_blacklist_openai_v1.ipynb   # Checkblacklist
+│   │   ├── prompts.py                   # Prompt-Templates
+│   │   ├── tools.py                     # Web-Such-Tools
+│   │   ├── check_blacklist.py           # Blacklist-Prüfung
+│   │   ├── fallback.py                  # Fallback-Logik
+│   │   ├── feedback.py                  # Feedback
+│   │   └── starters.py                 # Startnachrichten
+│   └── notebook/web_crawler/
+│       └── urlLoader.ipynb              # Web-Crawler-Notebook
 ├── notebook/                            # Entwicklungs-Notebooks
-├── crawler/                             # Web-Crawler-Modul
-│   ├── crawl_fhswf.py                  # FH SWF Web-Crawler
-│   ├── pyproject.toml                  # Crawler-Konfiguration
-│   └── README.md                       # Crawler-Dokumentation
-└── data/                                # Datenverzeichnis
-    └── blacklist/                       # Blacklist-Daten
+│   └── check_blacklist_openai_v1.ipynb   # Blacklist-Check
+├── crawler/                             # Web-Crawler-Modul (Workspace)
+│   ├── crawl_fhswf.py                   # FH SWF Web-Crawler
+│   ├── pyproject.toml                   # Crawler-Konfiguration
+│   └── README.md                        # Crawler-Dokumentation
+├── mcp/                                 # MCP (Model Context Protocol)
+│   ├── test-mcp-server.py               # MCP-Server-Test
+│   ├── test-mcp-client.ipynb            # MCP-Client-Notebook
+│   └── langchain-mcp.ipynb              # LangChain-MCP-Integration
+├── Neue_Codes KI_Intergration/           # RAG/KG-Pipeline (Neo4j, Embeddings)
+│   ├── mcp_server.py, rag_tool_kg_entity_edges.py
+│   ├── load_into_neo4j.py, embed_to_jsonl.py, …
+│   └── README.md
+├── test_frontend/                       # Frontend-/Blacklist-Tests
+└── testing_chatbot/                     # Chatbot-Tests (Auswertung, App)
 ```
 
 ## Installation
@@ -126,9 +146,11 @@ Der Chatbot benötigt folgende Umgebungsvariablen:
 - ✅ Intelligente Gesprächsführung mit GPT-4
 - ✅ Web-Suche auf der FH SWF Website
 - ✅ Reaktive Agent-Architektur mit LangGraph
-- ✅ Modernes Web-Interface mit Chainlit
+- ✅ Modernes Web-Interface mit Chainlit (mehrsprachige UI)
+- ✅ RAG & Wissensgraph (Neo4j, Qdrant) über `Neue_Codes KI_Intergration`
+- ✅ MCP-Integration (Model Context Protocol)
 - ✅ Docker-Containerisierung
-- ✅ Kubernetes-Deployment
+- ✅ Kubernetes-Deployment (inkl. Neo4j, Qdrant, MCP-Server)
 - ✅ Automatische Informationsbeschaffung
 - ✅ Jupyter Notebook-Integration
 - ✅ Automatische Versionierung mit Semantic Release
@@ -161,6 +183,6 @@ uv sync --upgrade
 # Spezifische Gruppe installieren
 uv sync --group notebook
 
-# Anwendung im Environment ausführen
-uv run python main.py
+# Chatbot starten (Chainlit)
+uv run chainlit run fh-swifty-chatbot/agent_langgraph_app.py
 ```
